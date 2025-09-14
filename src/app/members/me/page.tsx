@@ -5,8 +5,22 @@ import Link from "next/link";
 import Image from "next/image";
 import { auth } from "@/auth";
 import { getCountry } from "@/utils/country";
+import type { Metadata } from "next";
 
-export const metadata = { title: "My Country • League" };
+const baseUrl = "https://example.com";
+
+export const metadata: Metadata = {
+    title: "My Country • League",
+    description: "Private profile and tools for your country in the League.",
+    keywords: ["country", "profile", "league"],
+    alternates: { canonical: `${baseUrl}/members/me` },
+    openGraph: {
+        title: "My Country • League",
+        description: "Private profile and tools for your country in the League.",
+        url: `${baseUrl}/members/me`,
+        images: [{ url: `${baseUrl}/logo.png`, alt: "League logo" }],
+    },
+};
 
 export default async function MyCountryPage() {
     const session = await auth();

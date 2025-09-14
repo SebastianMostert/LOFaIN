@@ -3,12 +3,40 @@ import { notFound } from "next/navigation";
 import { epunda } from "@/app/fonts";
 import { getCountry } from "@/utils/country";
 import Image from "next/image";
+import type { Metadata } from "next";
 
-export async function generateMetadata({ params }: { params: Promise<{ slugOrCode: string }> }) {
+const baseUrl = "https://example.com";
+
+export async function generateMetadata({ params }: { params: Promise<{ slugOrCode: string }> }): Promise<Metadata> {
     const awaitedParams = await params;
     const country = await getCountry(awaitedParams.slugOrCode);
+    if (!country) {
+        const url = `${baseUrl}/members/${awaitedParams.slugOrCode}`;
+        return {
+            title: "Country • League",
+            description: "Public profile for a member country of the League.",
+            keywords: ["country", "league"],
+            alternates: { canonical: url },
+            openGraph: {
+                title: "Country • League",
+                description: "Public profile for a member country of the League.",
+                url,
+                images: [{ url: `${baseUrl}/logo.png`, alt: "League logo" }],
+            },
+        };
+    }
+    const url = `${baseUrl}/members/${country.slug}`;
     return {
-        title: country ? `${country.name} • League` : "Country • League",
+        title: `${country.name} • League`,
+        description: `Public profile for ${country.name} in the League of Free and Independent Nations.`,
+        keywords: [country.name, "country", "league"],
+        alternates: { canonical: url },
+        openGraph: {
+            title: `${country.name} • League`,
+            description: `Public profile for ${country.name} in the League of Free and Independent Nations.`,
+            url,
+            images: [{ url: `${baseUrl}/flags/${(country.code || "unknown").toLowerCase()}.svg`, alt: `${country.name} flag` }],
+        },
     };
 }
 

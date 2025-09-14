@@ -3,8 +3,22 @@ import Link from "next/link";
 import { prisma } from "@/prisma";
 import { epunda } from "@/app/fonts";
 import { auth } from "@/auth";
+import type { Metadata } from "next";
 
-export const metadata = { title: "Countries • League" };
+const baseUrl = "https://example.com";
+
+export const metadata: Metadata = {
+    title: "Countries • League",
+    description: "Browse member countries of the League of Free and Independent Nations.",
+    keywords: ["countries", "members", "league"],
+    alternates: { canonical: `${baseUrl}/members` },
+    openGraph: {
+        title: "Countries • League",
+        description: "Browse member countries of the League of Free and Independent Nations.",
+        url: `${baseUrl}/members`,
+        images: [{ url: `${baseUrl}/logo.png`, alt: "League logo" }],
+    },
+};
 
 export default async function CountriesPage() {
     const session = await auth();

@@ -1,10 +1,26 @@
 
 // app/page.tsx — Home, 1900 Style with Epunda Sans
 import Link from "next/link";
+import type { Metadata } from "next";
 import { epunda } from "@/app/fonts";
 import { prisma } from "@/prisma";
 
 export const dynamic = "force-dynamic";
+
+const baseUrl = "https://example.com";
+
+export const metadata: Metadata = {
+  title: "Home • League",
+  description: "Portal for the League of Free and Independent Nations.",
+  keywords: ["league", "treaty", "home"],
+  alternates: { canonical: `${baseUrl}/` },
+  openGraph: {
+    title: "Home • League",
+    description: "Portal for the League of Free and Independent Nations.",
+    url: `${baseUrl}/`,
+    images: [{ url: `${baseUrl}/logo.png`, alt: "League logo" }],
+  },
+};
 
 function Stat({ label, value }: { label: string; value: string }) {
   return (

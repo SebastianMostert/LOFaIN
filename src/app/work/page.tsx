@@ -1,6 +1,20 @@
 import { epunda } from "@/app/fonts";
+import type { Metadata } from "next";
 
-export const metadata = { title: "Our Work • League" };
+const baseUrl = "https://example.com";
+
+export const metadata: Metadata = {
+  title: "Our Work • League",
+  description: "Discover initiatives undertaken by the League of Free and Independent Nations.",
+  keywords: ["work", "initiatives", "league"],
+  alternates: { canonical: `${baseUrl}/work` },
+  openGraph: {
+    title: "Our Work • League",
+    description: "Discover initiatives undertaken by the League of Free and Independent Nations.",
+    url: `${baseUrl}/work`,
+    images: [{ url: `${baseUrl}/logo.png`, alt: "League logo" }],
+  },
+};
 
 export default function WorkPage() {
   return (
