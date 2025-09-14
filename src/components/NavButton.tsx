@@ -1,10 +1,8 @@
 // components/Header.tsx — Retro League Header with Logo + Epunda Sans
 "use client";
 
-import { signOut } from "next-auth/react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import Image from "next/image";
 
 export default function NavButton({ href, label }: { href: string; label: string; }) {
     const pathname = usePathname();

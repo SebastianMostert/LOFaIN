@@ -8,7 +8,8 @@ export const metadata = { title: "Countries • League" };
 
 export default async function CountriesPage() {
     const session = await auth();
-    const myCountryId = (session?.user as any)?.countryId ?? null;
+    const user = session?.user;
+    const myCountryId = user?.countryId ?? null;
 
     const countries = await prisma.country.findMany({
         where: { isActive: true },

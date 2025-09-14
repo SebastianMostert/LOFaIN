@@ -11,7 +11,9 @@ export default async function MyCountryPage() {
     const session = await auth();
     if (!session) redirect("/api/auth/signin?callbackUrl=/members/me");
 
-    const countryId = (session.user as any)?.countryId ?? null;
+    const user = session.user;
+
+    const countryId = user.countryId ?? null;
 
     if (!countryId) {
         return (

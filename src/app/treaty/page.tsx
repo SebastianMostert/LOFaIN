@@ -1,5 +1,4 @@
 // app/treaty/page.tsx — Canonical Treaty (Epunda Sans) with sticky TOC
-import Link from "next/link";
 import { epunda } from "@/app/fonts";
 
 const P = ({ children }: { children: React.ReactNode }) => (

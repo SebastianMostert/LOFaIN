@@ -28,15 +28,17 @@ async function getCountry(slugOrCode: string) {
     return bySlug;
 }
 
-export async function generateMetadata({ params }: { params: { slugOrCode: string } }) {
-    const country = await getCountry(params.slugOrCode);
+export async function generateMetadata({ params }: { params: Promise<{ slugOrCode: string }> }) {
+    const awaitedParams = await params;
+    const country = await getCountry(awaitedParams.slugOrCode);
     return {
         title: country ? `${country.name} • League` : "Country • League",
     };
 }
 
-export default async function PublicCountryPage({ params }: { params: { slugOrCode: string } }) {
-    const country = await getCountry(params.slugOrCode);
+export default async function PublicCountryPage({ params }: { params: Promise<{ slugOrCode: string }> }) {
+    const awaitedParams = await params;
+    const country = await getCountry(awaitedParams.slugOrCode);
     if (!country) notFound();
 
     return (

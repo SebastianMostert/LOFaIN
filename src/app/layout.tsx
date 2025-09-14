@@ -4,7 +4,6 @@
 // app/layout.tsx
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
-import Link from "next/link";
 import Header from "../components/Header";
 
 // Use a serif font for an early-1900s feel

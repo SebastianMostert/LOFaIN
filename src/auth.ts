@@ -72,7 +72,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     /**
      * Auto-assign user's country based on CountryMapping.discordId
      */
-    async signIn({ user, account }) {
+    async signIn({ account }) {
       if (account?.provider === "discord") {
         const discordId = account.providerAccountId;
 
@@ -119,17 +119,18 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
      * Put country on session (unchanged logic, but safe).
      */
     async session({ session, user }) {
+      const sessionUser = session.user;
       // 'user.id' here is from adapter; at this point it is the DB user (ObjectId string)
-      (session.user as any).countryId = user.countryId ?? null;
+      sessionUser.countryId = user.countryId ?? null;
 
       if (user.countryId) {
         const country = await prisma.country.findUnique({
           where: { id: user.countryId },
           select: { id: true, name: true, slug: true, code: true, colorHex: true },
         });
-        (session.user as any).country = country ?? null;
+        sessionUser.country = country ?? null;
       } else {
-        (session.user as any).country = null;
+        sessionUser.country = null;
       }
       return session;
     },
