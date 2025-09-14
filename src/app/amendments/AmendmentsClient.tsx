@@ -4,6 +4,7 @@ import React, { useMemo, useState } from "react";
 import Link from "next/link";
 import { epunda } from "@/app/fonts";
 import AmendmentCard from "@/components/Amendment/AmendmentCard";
+import { AmendmentResult, AmendmentStatus } from "@prisma/client";
 
 type Choice = "AYE" | "NAY" | "ABSTAIN" | "ABSENT";
 
@@ -11,8 +12,8 @@ type Amendment = {
     id: string;
     slug: string;
     title: string;
-    status: string;
-    result: string | null;
+    status: AmendmentStatus;
+    result: AmendmentResult | null;
     eligibleCount: number | null;
     opensAt: Date | null;
     closesAt: Date | null;
