@@ -38,6 +38,9 @@ export default async function AmendmentPage({ params }: { params: Promise<{ slug
             failureReason: true,
             op: true, newHeading: true, newBody: true, targetArticleId: true,
             votes: { select: { choice: true, countryId: true } },
+
+            proposerUser: { select: { id: true, name: true } },
+            proposerCountry: { select: { id: true, name: true, slug: true, code: true } },
         },
     });
     if (!amendment) notFound();
@@ -83,6 +86,35 @@ export default async function AmendmentPage({ params }: { params: Promise<{ slug
             <header className="text-center">
                 <h1 className={`${epunda.className} text-4xl sm:text-5xl font-extrabold`}>{amendment.title}</h1>
                 <div className="mx-auto mt-3 h-[3px] w-40 bg-red-600" />
+                {/* Byline: proposer */}
+                <div className="mt-2 flex items-center justify-center gap-2 text-sm text-stone-300">
+                    {amendment.proposerCountry && (
+                        <span className="inline-flex items-center gap-2">
+                            <span className="relative inline-block h-4 w-6 overflow-hidden rounded-[2px] border border-stone-800 bg-white align-middle">
+                                <FlagImage
+                                    src={`/flags/${(amendment.proposerCountry.code || "unknown").toLowerCase()}.svg`}
+                                    alt={`${amendment.proposerCountry.name} flag`}
+                                    sizes="24px"
+                                    className="object-cover"
+                                />
+                            </span>
+                            <span className="truncate">
+                                <>Proposed by the <span className="font-medium text-stone-200">{amendment.proposerCountry.name}</span></>
+                            </span>
+                        </span>
+                    )}
+
+                    {!amendment.proposerCountry && amendment.proposerUser?.name && (
+                        <span>
+                            Proposed by <span className="font-medium text-stone-200">{amendment.proposerUser.name}</span>
+                        </span>
+                    )}
+
+                    {!amendment.proposerCountry && !amendment.proposerUser && (
+                        <span className="italic text-stone-400">Proposer not recorded</span>
+                    )}
+                </div>
+
 
                 {/* Status line + banner */}
                 <div className="mt-3 flex flex-col items-center justify-center gap-3">
@@ -122,19 +154,23 @@ export default async function AmendmentPage({ params }: { params: Promise<{ slug
                     <FlagsGrid countries={countries} byCountry={byCountry} />
                 </div>
 
-                {/* Details + Diff */}
+                {/* Details + Content */}
                 <section className="mt-12 space-y-4">
                     <h2 className={`${epunda.className} text-xl font-semibold text-stone-100`}>Amendment Details</h2>
 
                     <div className="grid gap-3 text-sm sm:grid-cols-2">
                         <Detail label="Operation" value={labelForOp(amendment.op)} />
                         {targetArticle && (
-                            <Detail label="Target Article" value={`Article ${targetArticle.order}: ${targetArticle.heading}`} />
+                            <Detail
+                                label="Target Article"
+                                value={`Article ${targetArticle.order}: ${targetArticle.heading}`}
+                            />
                         )}
                         {amendment.newHeading && <Detail label="New Heading" value={amendment.newHeading} />}
                     </div>
 
-                    <DiffPreview
+                    <AmendmentContent
+                        status={status}
                         op={amendment.op as "ADD" | "EDIT" | "REMOVE"}
                         targetArticle={
                             targetArticle
@@ -149,6 +185,90 @@ export default async function AmendmentPage({ params }: { params: Promise<{ slug
         </main>
     );
 }
+
+function SectionCard({ title, children }: { title: string; children: React.ReactNode }) {
+    return (
+        <article className="rounded-lg border border-stone-700 bg-stone-900 p-5">
+            <h3 className={`${epunda.className} text-lg font-semibold text-stone-100`}>{title}</h3>
+            <div className="mt-3 text-stone-300 leading-relaxed">{children}</div>
+        </article>
+    );
+}
+
+/** Shows Diff while OPEN; shows Proposed Text when CLOSED (no diff). */
+function AmendmentContent({
+    status,
+    op,
+    targetArticle,
+    newHeading,
+    newBody,
+}: {
+    status: "OPEN" | "CLOSED" | string;
+    op: "ADD" | "EDIT" | "REMOVE";
+    targetArticle: { id: string; order: number; heading: string; body: string } | null;
+    newHeading: string;
+    newBody: string;
+}) {
+    const isOpen = status === "OPEN";
+
+    if (isOpen) {
+        // Keep your live diff while voting is open
+        return (
+            <DiffPreview
+                op={op}
+                targetArticle={targetArticle}
+                newHeading={newHeading}
+                newBody={newBody}
+            />
+        );
+    }
+
+    // CLOSED: show the clean proposed text instead of a diff
+    if (op === "REMOVE") {
+        return (
+            <SectionCard title="Proposed Amendment Text">
+                <div className="rounded-md border border-rose-800/50 bg-rose-950/30 px-3 py-2 text-rose-200">
+                    Proposed removal of{" "}
+                    {targetArticle
+                        ? <>Article {targetArticle.order}: <span className="font-medium text-rose-100">{targetArticle.heading}</span></>
+                        : "the specified article"}
+                    .
+                </div>
+                {targetArticle?.body && (
+                    <p className="mt-3 text-sm text-stone-400">
+                        (Original text not shown here to avoid stale snapshots. See article history for prior versions.)
+                    </p>
+                )}
+            </SectionCard>
+        );
+    }
+
+    // ADD / EDIT: show the proposed final text
+    const finalHeading =
+        (op === "EDIT" && newHeading) ? newHeading
+            : (op === "EDIT" && targetArticle) ? targetArticle.heading
+                : newHeading;
+
+    const finalBody = newBody; // for EDIT/ADD this is the proposed final body
+
+    return (
+        <SectionCard title="Proposed Amendment Text">
+            {finalHeading && (
+                <h4 className="text-base font-semibold text-stone-100">
+                    {targetArticle ? `Article ${targetArticle.order}: ` : ""}{finalHeading}
+                </h4>
+            )}
+            {finalBody ? (
+                <div className="prose prose-invert mt-3 max-w-none whitespace-pre-wrap">
+                    {finalBody}
+                </div>
+            ) : (
+                <p className="mt-2 text-stone-400 italic">No body text provided.</p>
+            )}
+        </SectionCard>
+    );
+}
+
 
 /* ---------- NEW: clear status visuals ---------- */
 
