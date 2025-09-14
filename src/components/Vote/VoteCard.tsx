@@ -18,6 +18,7 @@ export default function VoteCard({ slug, status }: { slug: string; status: Statu
         // You can skip this if you already pass initialChoice from server.
         (async () => {
             try {
+                // TODO: Fix - Doesnt exist
                 const res = await fetch(`/api/amendments/${encodeURIComponent(slug)}/my-vote`, { cache: "no-store" });
                 if (res.ok) {
                     const j = (await res.json()) as { choice: Choice | null };

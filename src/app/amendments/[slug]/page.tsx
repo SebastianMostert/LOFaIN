@@ -4,7 +4,7 @@ import { epunda } from "@/app/fonts";
 import { notFound } from "next/navigation";
 import FlagImage from "@/components/FlagImage";
 import SlideOutVoteTab from "@/components/Vote/SlideOutVoteTab";
-import DiffPreview from "@/components/DiffPreview"; // ⬅️ add
+import DiffPreview from "@/components/DiffPreview";
 
 export const dynamic = "force-dynamic";
 
@@ -23,19 +23,18 @@ const pct = (n: number, d: number) => (d ? clampPct((n / d) * 100) : 0);
 export default async function AmendmentPage({ params }: { params: Promise<{ slug: string }> }) {
     const awaitedParams = await params;
     await closeExpiredAmendments(awaitedParams.slug);
+
     const amendment = await prisma.amendment.findUnique({
         where: { slug: awaitedParams.slug },
         select: {
             id: true, slug: true, title: true, rationale: true,
             status: true, result: true, opensAt: true, closesAt: true, eligibleCount: true,
-            // ⬇️ needed for details/diff
             op: true, newHeading: true, newBody: true, targetArticleId: true,
             votes: { select: { choice: true, countryId: true } },
         },
     });
     if (!amendment) notFound();
 
-    // If we reference an existing article, fetch its full content for the diff
     const targetArticle = amendment.targetArticleId
         ? await prisma.article.findUnique({
             where: { id: amendment.targetArticleId },
@@ -54,26 +53,38 @@ export default async function AmendmentPage({ params }: { params: Promise<{ slug
 
     const totalMembers = amendment.eligibleCount || countries.length || 1;
 
+    // "OPEN" | "CLOSED"
+    const status = amendment.status;
+
+    // "PASSED" | "FAILED"
+    const result = amendment.result;
+
     return (
         <main className="mx-auto max-w-7xl px-4 py-10 text-stone-100">
-            {/* Slide-out vote tab */}
-            <SlideOutVoteTab slug={amendment.slug} status={amendment.status} />
+            <SlideOutVoteTab slug={amendment.slug} status={status} />
 
             {/* Title */}
             <header className="text-center">
                 <h1 className={`${epunda.className} text-4xl sm:text-5xl font-extrabold`}>{amendment.title}</h1>
                 <div className="mx-auto mt-3 h-[3px] w-40 bg-red-600" />
-                <p className="mt-2 text-sm text-stone-400">
-                    {amendment.status === "OPEN"
-                        ? <>Open • Closes {amendment.closesAt ? new Date(amendment.closesAt).toLocaleString() : "—"}</>
-                        : amendment.result
-                            ? <>{amendment.result} {amendment.closesAt ? `• ${new Date(amendment.closesAt).toLocaleString()}` : ""}</>
-                            : <>Closed {amendment.closesAt ? `• ${new Date(amendment.closesAt).toLocaleString()}` : ""}</>}
-                </p>
+
+                {/* Status line + banner */}
+                <div className="mt-3 flex items-center justify-center gap-3">
+                    <StatusBanner
+                        status={status}
+                        result={result}
+                        closesAt={amendment.closesAt ?? null}
+                    />
+                </div>
             </header>
 
             {/* Meter */}
-            <Meter totalMembers={totalMembers} votes={amendment.votes as { choice: Choice }[]} />
+            <Meter
+                totalMembers={totalMembers}
+                votes={amendment.votes as { choice: Choice }[]}
+                closed={status !== "OPEN"}
+                result={result ?? null}
+            />
 
             {/* Content */}
             <section className="mt-10 grid grid-cols-1 gap-8">
@@ -81,9 +92,7 @@ export default async function AmendmentPage({ params }: { params: Promise<{ slug
                     {amendment.rationale && (
                         <article className="rounded-lg border border-stone-700 bg-stone-900 p-5">
                             <h2 className={`${epunda.className} text-xl font-semibold text-stone-100`}>Amendment Summary</h2>
-                            <p className="mt-2 whitespace-pre-wrap leading-relaxed text-stone-300">
-                                {amendment.rationale}
-                            </p>
+                            <p className="mt-2 whitespace-pre-wrap leading-relaxed text-stone-300">{amendment.rationale}</p>
                         </article>
                     )}
 
@@ -91,31 +100,25 @@ export default async function AmendmentPage({ params }: { params: Promise<{ slug
                     <FlagsGrid countries={countries} byCountry={byCountry} />
                 </div>
 
-                {/* --- Amendment Details + Diff --- */}
+                {/* Details + Diff */}
                 <section className="mt-12 space-y-4">
                     <h2 className={`${epunda.className} text-xl font-semibold text-stone-100`}>Amendment Details</h2>
 
-                    {/* Small facts row */}
-                    <div className="grid gap-3 sm:grid-cols-2 text-sm">
+                    <div className="grid gap-3 text-sm sm:grid-cols-2">
                         <Detail label="Operation" value={labelForOp(amendment.op)} />
                         {targetArticle && (
-                            <Detail
-                                label="Target Article"
-                                value={`Article ${targetArticle.order}: ${targetArticle.heading}`}
-                            />
+                            <Detail label="Target Article" value={`Article ${targetArticle.order}: ${targetArticle.heading}`} />
                         )}
                         {amendment.newHeading && <Detail label="New Heading" value={amendment.newHeading} />}
                     </div>
 
-                    {/* GitHub-style unified diff */}
                     <DiffPreview
                         op={amendment.op as "ADD" | "EDIT" | "REMOVE"}
-                        targetArticle={targetArticle ? {
-                            id: targetArticle.id,
-                            order: targetArticle.order,
-                            heading: targetArticle.heading,
-                            body: targetArticle.body,
-                        } : null}
+                        targetArticle={
+                            targetArticle
+                                ? { id: targetArticle.id, order: targetArticle.order, heading: targetArticle.heading, body: targetArticle.body }
+                                : null
+                        }
                         newHeading={amendment.newHeading ?? ""}
                         newBody={amendment.newBody ?? ""}
                     />
@@ -125,7 +128,41 @@ export default async function AmendmentPage({ params }: { params: Promise<{ slug
     );
 }
 
-/* -------- helper components -------- */
+/* ---------- NEW: clear status visuals ---------- */
+
+function StatusBanner({
+    status,
+    result,
+    closesAt,
+}: {
+    status: "OPEN" | "CLOSED" | string;
+    result: "PASSED" | "FAILED" | null | string;
+    closesAt: Date | null;
+}) {
+    if (status === "OPEN") {
+        return (
+            <span className="inline-flex items-center gap-2 rounded-full border border-blue-700/60 bg-blue-900/40 px-3 py-1 text-xs text-blue-200">
+                <span className="i" aria-hidden>●</span> Voting open
+                {closesAt && <span className="text-blue-300/80">• Closes {new Date(closesAt).toLocaleString()}</span>}
+            </span>
+        );
+    }
+
+    const passed = result === "PASSED";
+    const base =
+        "inline-flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-semibold";
+    return passed ? (
+        <div className={`${base} border border-emerald-700 bg-emerald-900/40 text-emerald-200`}>
+            ✓ Passed{closesAt ? ` • ${new Date(closesAt).toLocaleString()}` : ""}
+        </div>
+    ) : (
+        <div className={`${base} border border-rose-700 bg-rose-900/40 text-rose-200`}>
+            ✗ Failed{closesAt ? ` • ${new Date(closesAt).toLocaleString()}` : ""}
+        </div>
+    );
+}
+
+/* ---------- helpers/components (unchanged except Meter tweaks) ---------- */
 
 function Detail({ label, value }: { label: string; value: string }) {
     return (
@@ -188,22 +225,51 @@ const Legend = () => (
     </div>
 );
 
-const Meter = ({ totalMembers, votes }: { totalMembers: number; votes: { choice: Choice }[] }) => {
+/** Meter now knows about closed state & result for stronger visuals */
+const Meter = ({
+    totalMembers,
+    votes,
+    closed,
+    result,
+}: {
+    totalMembers: number;
+    votes: { choice: Choice }[];
+    closed?: boolean;
+    result?: "PASSED" | "FAILED" | null | string;
+}) => {
     const aye = votes.filter(v => v.choice === "AYE").length;
     const nay = votes.filter(v => v.choice === "NAY").length;
     const abstain = votes.filter(v => v.choice === "ABSTAIN").length;
+
     const ayePct = pct(aye, totalMembers);
     const thresholdCount = Math.ceil((2 / 3) * totalMembers);
     const thresholdPct = clampPct((2 / 3) * 100);
 
+    // tint background when closed: green if passed, red if failed
+    const closedTint =
+        closed && result === "PASSED" ? "ring-2 ring-emerald-600"
+            : closed && result === "FAILED" ? "ring-2 ring-rose-600"
+                : "";
+
     return (
         <section className="mx-auto mt-8 max-w-4xl">
-            <div className="relative h-10 rounded border-2 border-stone-900 bg-stone-100 shadow-[0_2px_0_rgba(0,0,0,1)]">
+            <div className={`relative h-10 rounded border-2 border-stone-900 bg-stone-100 shadow-[0_2px_0_rgba(0,0,0,1)] ${closedTint}`}>
                 <div className="absolute inset-y-0 left-0 rounded-l bg-emerald-600" style={{ width: `${ayePct}%` }} />
                 <div className="absolute inset-y-0 w-[2px] bg-stone-900" style={{ left: `${thresholdPct}%` }} title="Two-thirds threshold" />
+
+                {/* lock overlay when closed */}
+                {closed && (
+                    <div className="absolute inset-0 grid place-items-center bg-stone-900/10 pointer-events-none">
+                        <span className="rounded-md border border-stone-700 bg-stone-900/80 px-2 py-0.5 text-xs text-stone-200">
+                            Voting closed
+                        </span>
+                    </div>
+                )}
             </div>
             <div className="mt-2 flex items-center justify-between text-sm text-stone-300">
-                <span>Aye {aye} • Nay {nay} • Abstain {abstain}</span>
+                <span>
+                    Aye {aye} • Nay {nay} • Abstain {abstain}
+                </span>
                 <span>{thresholdCount} of {totalMembers} required</span>
             </div>
         </section>

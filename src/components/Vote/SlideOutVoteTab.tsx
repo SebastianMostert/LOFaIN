@@ -35,6 +35,8 @@ export default function SlideOutVoteTab({
         return () => document.removeEventListener("mousedown", onClick);
     }, [open]);
 
+    if(!open) return null;
+
     return (
         <>
             {/* Slide-out panel */}
