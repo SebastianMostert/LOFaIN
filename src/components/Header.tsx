@@ -84,9 +84,11 @@ export default async function Header() {
   return (
     <header className="w-full sticky top-0 z-[999] bg-sky-200 border-b-4 border-red-700 shadow-md">
       {showBanner && (
-        <div className="w-full bg-yellow-300 text-center py-2 font-semibold">
-          Your country has pending votes closing soon.
-        </div>
+        <Link href="/amendments?status=OPEN&q=&nv=1">
+          <div className="w-full bg-red-600 text-center py-2 font-semibold">
+            Your country has pending votes closing soon.
+          </div>
+        </Link>
       )}
       <div className="mx-auto flex max-w-8xl items-center justify-between px-6 py-3">
         {/* Left: Logo */}

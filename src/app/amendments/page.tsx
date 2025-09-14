@@ -3,11 +3,11 @@ import { prisma } from "@/prisma";
 import { closeExpiredAmendments } from "@/utils/amendments";
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";
-import AmendmentsClient from "./AmendmentsClient";
+import AmendmentsClient from "../../components/AmendmentsClient";
 
 export const dynamic = "force-dynamic";
 
-export default async function AmendmentsPage() {
+export default async function AmendmentsPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>>; }) {
     const session = await auth();
     if (!session) redirect("/api/auth/signin?callbackUrl=/amendments");
 
@@ -24,9 +24,13 @@ export default async function AmendmentsPage() {
             eligibleCount: true,
             opensAt: true,
             closesAt: true,
-            votes: { select: { choice: true } },
+            votes: { select: { choice: true, countryId: true } }, 
         },
     });
 
-    return <AmendmentsClient items={items} />;
+    return <AmendmentsClient
+        items={items}
+        searchParams={await searchParams}
+        userCountryId={session.user?.countryId ?? null}
+    />
 }
