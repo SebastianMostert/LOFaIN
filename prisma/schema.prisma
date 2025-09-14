@@ -39,6 +39,9 @@ model Country {
   colorHex String? // muted accent for UI
   isActive Boolean @default(true)
 
+  // Can they veto
+  hasVeto Boolean @default(false)
+
   users    User[]
   mappings CountryMapping[]
 
@@ -158,12 +161,12 @@ enum AmendmentResult {
 }
 
 model Amendment {
-  id              String          @id @default(auto()) @map("_id") @db.ObjectId
-  treatyId        String          @db.ObjectId
+  id              String           @id @default(auto()) @map("_id") @db.ObjectId
+  treatyId        String           @db.ObjectId
   // Target: if EDIT/REMOVE → target existing article; if ADD → can be null + newOrder provided
-  targetArticleId String?         @db.ObjectId
+  targetArticleId String?          @db.ObjectId
   op              AmendmentOp
-  slug            String          @unique // e.g., "amendment-1"
+  slug            String           @unique // e.g., "amendment-1"
   title           String
   rationale       String? // explain why
   // Proposed content
@@ -171,7 +174,7 @@ model Amendment {
   newBody         String? // for ADD/EDIT
   newOrder        Int? // for ADD (where to insert)
   // Voting
-  status          AmendmentStatus @default(DRAFT)
+  status          AmendmentStatus  @default(DRAFT)
   result          AmendmentResult?
   opensAt         DateTime?
   closesAt        DateTime?
