@@ -40,9 +40,9 @@ export default async function AmendmentsPage() {
 
             <div className="mt-8 grid gap-4 md:grid-cols-2">
                 {items.map((a) => {
-                    const counts = { AYE: 0, NAY: 0, ABSTAIN: 0 } as Record<string, number>;
+                    const counts = { AYE: 0, NAY: 0, ABSTAIN: 0, ABSENT: 0 } as Record<string, number>;
                     a.votes.forEach((v) => counts[v.choice]++);
-                    const total = counts.AYE + counts.NAY + counts.ABSTAIN || 1;
+                    const total = counts.AYE + counts.NAY + counts.ABSTAIN + counts.ABSENT || 1;
                     const ayePct = Math.round((counts.AYE / total) * 100);
 
                     return (
@@ -71,7 +71,7 @@ export default async function AmendmentsPage() {
                                     />
                                 </div>
                                 <div className="mt-1 text-xs text-stone-400">
-                                    Nay: {counts.NAY} · Abstain: {counts.ABSTAIN}
+                                    Nay: {counts.NAY} · Abstain: {counts.ABSTAIN + counts.ABSENT}
                                 </div>
                             </div>
                         </Link>

@@ -6,8 +6,8 @@ export async function finalizeAmendment(a: { id: string; threshold: number | nul
         where: { amendmentId: a.id },
         _count: true,
     });
-    const counts: Record<"AYE" | "NAY" | "ABSTAIN", number> = { AYE: 0, NAY: 0, ABSTAIN: 0 };
-    for (const v of votes) counts[v.choice as "AYE" | "NAY" | "ABSTAIN"] = v._count;
+    const counts: Record<"AYE" | "NAY" | "ABSTAIN" | "ABSENT", number> = { AYE: 0, NAY: 0, ABSTAIN: 0, ABSENT: 0 };
+    for (const v of votes) counts[v.choice as "AYE" | "NAY" | "ABSTAIN" | "ABSENT"] = v._count;
     const eligible = a.eligibleCount ?? (await prisma.country.count({ where: { isActive: true } }));
     const threshold = a.threshold ?? 2 / 3;
     const needed = Math.ceil(eligible * threshold);

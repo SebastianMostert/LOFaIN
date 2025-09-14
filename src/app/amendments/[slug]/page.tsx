@@ -8,12 +8,14 @@ import DiffPreview from "@/components/DiffPreview";
 
 export const dynamic = "force-dynamic";
 
-type Choice = "AYE" | "NAY" | "ABSTAIN";
+type Choice = "AYE" | "NAY" | "ABSTAIN" | "ABSENT";
 
 function choiceColor(choice?: Choice | null) {
     switch (choice) {
         case "AYE": return "bg-emerald-500";
         case "NAY": return "bg-rose-600";
+        case "ABSTAIN": return "bg-stone-500";
+        case "ABSENT": return "bg-stone-400";
         default: return "bg-stone-500";
     }
 }
@@ -192,7 +194,7 @@ const FlagsGrid = ({
     <section className="mx-auto mt-12 max-w-[95rem]">
         <div className="flex flex-wrap items-end justify-center gap-16">
             {countries.map((c) => {
-                const vote = byCountry.get(c.id) ?? null;
+                const vote = (byCountry.get(c.id) ?? "ABSENT") as Choice;
                 const flagSrc = `/flags/${(c.code || "unknown").toLowerCase()}.svg`;
                 return (
                     <div key={c.id} className="flex flex-col items-center">
@@ -200,7 +202,7 @@ const FlagsGrid = ({
                             <FlagImage src={flagSrc} alt={`${c.name} flag`} sizes="220px" className="object-cover" />
                         </div>
                         <div className="mt-6 h-[64px] w-[64px] rounded-[2px] border-[6px] border-stone-900 bg-white">
-                            {vote && <div className={`h-full w-full ${choiceColor(vote)}`} />}
+                            <div className={`h-full w-full ${choiceColor(vote)}`} />
                         </div>
                     </div>
                 );
@@ -240,6 +242,8 @@ const Meter = ({
     const aye = votes.filter(v => v.choice === "AYE").length;
     const nay = votes.filter(v => v.choice === "NAY").length;
     const abstain = votes.filter(v => v.choice === "ABSTAIN").length;
+    const absent = totalMembers - votes.length;
+    const abstainTotal = abstain + absent;
 
     const ayePct = pct(aye, totalMembers);
     const thresholdCount = Math.ceil((2 / 3) * totalMembers);
@@ -268,7 +272,7 @@ const Meter = ({
             </div>
             <div className="mt-2 flex items-center justify-between text-sm text-stone-300">
                 <span>
-                    Aye {aye} • Nay {nay} • Abstain {abstain}
+                    Aye {aye} • Nay {nay} • Abstain {abstainTotal}
                 </span>
                 <span>{thresholdCount} of {totalMembers} required</span>
             </div>

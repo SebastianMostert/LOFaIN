@@ -3,7 +3,7 @@
 import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 
-type Choice = "AYE" | "NAY" | "ABSTAIN";
+type Choice = "AYE" | "NAY" | "ABSTAIN" | "ABSENT";
 type Status = "OPEN" | "CLOSED" | string;
 
 export default function VoteCard({ slug, status }: { slug: string; status: Status }) {
@@ -31,7 +31,7 @@ export default function VoteCard({ slug, status }: { slug: string; status: Statu
     async function vote(next: Choice) {
         if (!canVote || pending) return;
         const prev = choice;
-        setChoice(next);
+        setChoice(next === "ABSENT" ? null : next);
 
         const res = await fetch(`/api/amendments/${encodeURIComponent(slug)}/vote`, {
             method: "POST",
@@ -52,7 +52,7 @@ export default function VoteCard({ slug, status }: { slug: string; status: Statu
     const Btn = ({
         label, value, bg, outline,
     }: { label: string; value: Choice; bg: string; outline: string }) => {
-        const active = choice === value;
+        const active = (choice ?? "ABSENT") === value;
         return (
             <button
                 type="button"
@@ -75,7 +75,7 @@ export default function VoteCard({ slug, status }: { slug: string; status: Statu
                     {canVote ? "Cast your vote" : "Voting closed"}
                 </div>
                 <div className="mt-1 text-sm text-stone-700">
-                    Your choice: <strong>{choice ?? "—"}</strong>
+                    Your choice: <strong>{choice ?? "ABSENT"}</strong>
                 </div>
             </div>
 
@@ -83,6 +83,7 @@ export default function VoteCard({ slug, status }: { slug: string; status: Statu
                 <Btn label="Yes" value="AYE" bg="bg-emerald-600" outline="border-stone-400" />
                 <Btn label="No" value="NAY" bg="bg-rose-600" outline="border-stone-400" />
                 <Btn label="Abstain" value="ABSTAIN" bg="bg-stone-500" outline="border-stone-400" />
+                <Btn label="Absent" value="ABSENT" bg="bg-stone-400" outline="border-stone-400" />
             </div>
         </div>
     );

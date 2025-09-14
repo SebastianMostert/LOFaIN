@@ -12,7 +12,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ slug: s
     const countryId = session.user?.countryId as string | undefined;
     if (!countryId) return NextResponse.json({ error: "No country assigned" }, { status: 403 });
 
-    const { choice, comment } = await req.json() as { choice: "AYE" | "NAY" | "ABSTAIN"; comment?: string };
+    const { choice, comment } = await req.json() as { choice: "AYE" | "NAY" | "ABSTAIN" | "ABSENT"; comment?: string };
 
     await closeExpiredAmendments(awaitedParams.slug);
 
@@ -25,6 +25,13 @@ export async function POST(req: Request, { params }: { params: Promise<{ slug: s
 
     const now = new Date();
     if (a.opensAt && now < a.opensAt) return NextResponse.json({ error: "Voting not open yet" }, { status: 400 });
+
+    if (choice === "ABSENT") {
+        await prisma.vote.delete({
+            where: { amendmentId_countryId: { amendmentId: a.id, countryId } },
+        }).catch(() => null);
+        return NextResponse.json({ ok: true, vote: null });
+    }
 
     const vote = await prisma.vote.upsert({
         where: { amendmentId_countryId: { amendmentId: a.id, countryId } },
