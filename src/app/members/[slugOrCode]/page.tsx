@@ -1,11 +1,12 @@
 // app/members/[slugOrCode]/page.tsx
 import { notFound } from "next/navigation";
 import { epunda } from "@/app/fonts";
-import { getCountry } from "@/utils/country";
+import { getCountry, normalizeSlugOrCode } from "@/utils/country";
 
 export async function generateMetadata({ params }: { params: Promise<{ slugOrCode: string }> }) {
     const awaitedParams = await params;
-    const country = await getCountry(awaitedParams.slugOrCode);
+    const slugOrCode = normalizeSlugOrCode(awaitedParams.slugOrCode);
+    const country = slugOrCode ? await getCountry(slugOrCode) : null;
     return {
         title: country ? `${country.name} • League` : "Country • League",
     };
@@ -13,7 +14,9 @@ export async function generateMetadata({ params }: { params: Promise<{ slugOrCod
 
 export default async function PublicCountryPage({ params }: { params: Promise<{ slugOrCode: string }> }) {
     const awaitedParams = await params;
-    const country = await getCountry(awaitedParams.slugOrCode);
+    const slugOrCode = normalizeSlugOrCode(awaitedParams.slugOrCode);
+    if (!slugOrCode) notFound();
+    const country = await getCountry(slugOrCode);
     if (!country) notFound();
 
     return (
