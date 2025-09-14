@@ -17,33 +17,15 @@ const baseUrl = "https://example.com";
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
     const { slug } = await params;
-    const amendment = await prisma.amendment.findUnique({
-        where: { slug },
-        select: { title: true, rationale: true },
-    });
     const url = `${baseUrl}/amendments/${slug}`;
-    if (!amendment) {
-        return {
-            title: "Amendment • League",
-            description: "View details of a treaty amendment.",
-            keywords: ["amendment", "league"],
-            alternates: { canonical: url },
-            openGraph: {
-                title: "Amendment • League",
-                description: "View details of a treaty amendment.",
-                url,
-                images: [{ url: `${baseUrl}/logo.png`, alt: "League logo" }],
-            },
-        };
-    }
     return {
-        title: `${amendment.title} • League`,
-        description: amendment.rationale ?? "Details of a treaty amendment.",
-        keywords: ["amendment", "league", amendment.title],
+        title: "Amendment • League",
+        description: "View details of a treaty amendment.",
+        keywords: ["amendment", "league"],
         alternates: { canonical: url },
         openGraph: {
-            title: `${amendment.title} • League`,
-            description: amendment.rationale ?? "Details of a treaty amendment.",
+            title: "Amendment • League",
+            description: "View details of a treaty amendment.",
             url,
             images: [{ url: `${baseUrl}/logo.png`, alt: "League logo" }],
         },
