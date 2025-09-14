@@ -150,6 +150,9 @@ enum AmendmentStatus {
   DRAFT
   OPEN
   CLOSED
+}
+
+enum AmendmentResult {
   PASSED
   FAILED
 }
@@ -169,6 +172,7 @@ model Amendment {
   newOrder        Int? // for ADD (where to insert)
   // Voting
   status          AmendmentStatus @default(DRAFT)
+  result          AmendmentResult?
   opensAt         DateTime?
   closesAt        DateTime?
   threshold       Float? // default 2/3 if null

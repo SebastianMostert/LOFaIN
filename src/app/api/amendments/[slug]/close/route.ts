@@ -2,6 +2,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/prisma";
 import { auth } from "@/auth";
+import { finalizeAmendment } from "@/utils/amendments";
 
 export async function POST(req: Request, { params }: { params: Promise<{ slug: string }> }) {
     const awaitedParams = await params;
@@ -10,28 +11,17 @@ export async function POST(req: Request, { params }: { params: Promise<{ slug: s
 
     const a = await prisma.amendment.findUnique({
         where: { slug: awaitedParams.slug },
-        select: { id: true, status: true, threshold: true, eligibleCount: true },
+        select: { id: true, threshold: true, eligibleCount: true },
     });
     if (!a) return NextResponse.json({ error: "Amendment not found" }, { status: 404 });
 
-    const votes = await prisma.vote.groupBy({
-        by: ["choice"],
-        where: { amendmentId: a.id },
-        _count: true,
+    const { passed, counts, eligible, needed } = await finalizeAmendment(a);
+
+    return NextResponse.json({
+        status: "CLOSED",
+        result: passed ? "PASSED" : "FAILED",
+        counts,
+        eligible,
+        needed,
     });
-
-    const counts = { AYE: 0, NAY: 0, ABSTAIN: 0 };
-    for (const v of votes) counts[v.choice as "AYE" | "NAY" | "ABSTAIN"] = v._count;
-
-    const eligible = a.eligibleCount ?? (await prisma.country.count({ where: { isActive: true } }));
-    const threshold = a.threshold ?? 2 / 3;
-    const needed = Math.ceil(eligible * threshold);
-    const passed = counts.AYE >= needed;
-
-    await prisma.amendment.update({
-        where: { id: a.id },
-        data: { status: passed ? "PASSED" : "FAILED" },
-    });
-
-    return NextResponse.json({ status: passed ? "PASSED" : "FAILED", counts, eligible, needed });
 }

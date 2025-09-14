@@ -2,10 +2,12 @@
 import Link from "next/link";
 import { prisma } from "@/prisma";
 import { epunda } from "@/app/fonts";
+import { closeExpiredAmendments } from "@/utils/amendments";
 
 export const dynamic = "force-dynamic";
 
 export default async function AmendmentsPage() {
+    await closeExpiredAmendments();
     const items = await prisma.amendment.findMany({
         orderBy: { createdAt: "desc" },
         select: {
@@ -13,6 +15,7 @@ export default async function AmendmentsPage() {
             slug: true,
             title: true,
             status: true,
+            result: true,
             opensAt: true,
             closesAt: true,
             votes: { select: { choice: true } },
@@ -48,7 +51,7 @@ export default async function AmendmentsPage() {
                             href={`/amendments/${a.slug}`}
                             className="rounded-lg border border-stone-700 bg-stone-900 p-5 hover:bg-stone-800"
                         >
-                            <div className="text-xs uppercase tracking-wide text-stone-400">{a.status}</div>
+                            <div className="text-xs uppercase tracking-wide text-stone-400">{a.status === "OPEN" ? a.status : (a.result ?? a.status)}</div>
                             <h2 className={`${epunda.className} mt-1 text-xl font-semibold`}>{a.title}</h2>
                             {(a.opensAt || a.closesAt) && (
                                 <div className="mt-1 text-sm text-stone-400">

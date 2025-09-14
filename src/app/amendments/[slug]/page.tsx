@@ -1,4 +1,5 @@
 import { prisma } from "@/prisma";
+import { closeExpiredAmendments } from "@/utils/amendments";
 import { epunda } from "@/app/fonts";
 import { notFound } from "next/navigation";
 import FlagImage from "@/components/FlagImage";
@@ -21,11 +22,12 @@ const pct = (n: number, d: number) => (d ? clampPct((n / d) * 100) : 0);
 
 export default async function AmendmentPage({ params }: { params: Promise<{ slug: string }> }) {
     const awaitedParams = await params;
+    await closeExpiredAmendments(awaitedParams.slug);
     const amendment = await prisma.amendment.findUnique({
         where: { slug: awaitedParams.slug },
         select: {
             id: true, slug: true, title: true, rationale: true,
-            status: true, opensAt: true, closesAt: true, eligibleCount: true,
+            status: true, result: true, opensAt: true, closesAt: true, eligibleCount: true,
             // ⬇️ needed for details/diff
             op: true, newHeading: true, newBody: true, targetArticleId: true,
             votes: { select: { choice: true, countryId: true } },
@@ -64,7 +66,9 @@ export default async function AmendmentPage({ params }: { params: Promise<{ slug
                 <p className="mt-2 text-sm text-stone-400">
                     {amendment.status === "OPEN"
                         ? <>Open • Closes {amendment.closesAt ? new Date(amendment.closesAt).toLocaleString() : "—"}</>
-                        : <>Closed {amendment.closesAt ? `• ${new Date(amendment.closesAt).toLocaleString()}` : ""}</>}
+                        : amendment.result
+                            ? <>{amendment.result} {amendment.closesAt ? `• ${new Date(amendment.closesAt).toLocaleString()}` : ""}</>
+                            : <>Closed {amendment.closesAt ? `• ${new Date(amendment.closesAt).toLocaleString()}` : ""}</>}
                 </p>
             </header>
 
