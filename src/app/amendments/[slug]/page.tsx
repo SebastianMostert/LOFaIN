@@ -20,8 +20,6 @@ function choiceColor(choice?: Choice | null) {
         default: return "bg-stone-500";
     }
 }
-const clampPct = (n: number) => Math.max(0, Math.min(100, Math.round(n)));
-const pct = (n: number, d: number) => (d ? clampPct((n / d) * 100) : 0);
 
 export default async function AmendmentPage({ params }: { params: Promise<{ slug: string }> }) {
     const awaitedParams = await params;
@@ -253,6 +251,7 @@ const Legend = () => (
 );
 
 /** Meter now knows about closed state & result for stronger visuals */
+/** Meter: AYE fills from left, NAY from right, NEUTRAL sits left of NAY (or right-aligned if no NAY). */
 const Meter = ({
     totalMembers,
     votes,
@@ -267,26 +266,72 @@ const Meter = ({
     const aye = votes.filter(v => v.choice === "AYE").length;
     const nay = votes.filter(v => v.choice === "NAY").length;
     const abstain = votes.filter(v => v.choice === "ABSTAIN").length;
-    const absent = totalMembers - votes.length;
-    const abstainTotal = abstain;
+    const absent = Math.max(0, totalMembers - votes.length);
 
-    const ayePct = pct(aye, totalMembers);
+    const neutral = abstain + absent;
+
+    // use precise percentages for layout (avoid rounding overlap)
+    const pctFloat = (n: number, d: number) => (d ? Math.max(0, Math.min(100, (n / d) * 100)) : 0);
+
+    const ayePct = pctFloat(aye, totalMembers);
+    const nayPct = pctFloat(nay, totalMembers);
+    const neutralPct = pctFloat(neutral, totalMembers);
+
     const thresholdCount = Math.ceil((2 / 3) * totalMembers);
-    const thresholdPct = clampPct((2 / 3) * 100);
+    const thresholdPct = Math.max(0, Math.min(100, (2 / 3) * 100));
 
-    // tint background when closed: green if passed, red if failed
     const closedTint =
         closed && result === "PASSED" ? "ring-2 ring-emerald-600"
             : closed && result === "FAILED" ? "ring-2 ring-rose-600"
                 : "";
 
-    return (
-        <section className="mx-auto mt-8 max-w-4xl">
-            <div className={`relative h-10 rounded border-2 border-stone-900 bg-stone-100 shadow-[0_2px_0_rgba(0,0,0,1)] ${closedTint}`}>
-                <div className="absolute inset-y-0 left-0 rounded-l bg-emerald-600" style={{ width: `${ayePct}%` }} />
-                <div className="absolute inset-y-0 w-[2px] bg-stone-900" style={{ left: `${thresholdPct}%` }} title="Two-thirds threshold" />
+    // NEUTRAL placement:
+    // - If there are NAYs, NEUTRAL sits immediately to the left of NAY.
+    // - If there are no NAYs, NEUTRAL is right-aligned (fills from right to left).
+    const neutralRight = nayPct; // distance from right edge when there ARE NAYs
+    const neutralStyle = nayPct > 0
+        ? { right: `${neutralRight}%`, width: `${neutralPct}%` }
+        : { right: `0%`, width: `${neutralPct}%` };
 
-                {/* lock overlay when closed */}
+    return (
+        <section className="mx-auto mt-8 max-w-4xl rounded">
+            <div className={`relative h-10 border-2 border-stone-900 bg-stone-100 shadow-[0_2px_0_rgba(0,0,0,1)] ${closedTint}`}>
+
+                {/* AYE (left → right) */}
+                {ayePct > 0 && (
+                    <div
+                        className="absolute inset-y-0 left-0 bg-emerald-600"
+                        style={{ width: `${ayePct}%` }}
+                        title={`Aye: ${aye}`}
+                    />
+                )}
+
+                {/* NEUTRAL (ABSTAIN + ABSENT) — to the left of NAY, or right-aligned if no NAY */}
+                {neutralPct > 0 && (
+                    <div
+                        className="absolute inset-y-0 bg-stone-500"
+                        style={neutralStyle as React.CSSProperties}
+                        title={`Neutral (Abstain + Absent): ${neutral}`}
+                    />
+                )}
+
+                {/* NAY (right → left) */}
+                {nayPct > 0 && (
+                    <div
+                        className="absolute inset-y-0 right-0 bg-rose-600"
+                        style={{ width: `${nayPct}%` }}
+                        title={`Nay: ${nay}`}
+                    />
+                )}
+
+                {/* Two-thirds threshold marker */}
+                <div
+                    className="absolute inset-y-0 w-[2px] bg-stone-900"
+                    style={{ left: `${thresholdPct}%` }}
+                    title="Two-thirds threshold"
+                />
+
+                {/* Lock overlay when closed */}
                 {closed && (
                     <div className="absolute inset-0 grid place-items-center bg-stone-900/10 pointer-events-none">
                         <span className="rounded-md border border-stone-700 bg-stone-900/80 px-2 py-0.5 text-xs text-stone-200">
@@ -295,9 +340,10 @@ const Meter = ({
                     </div>
                 )}
             </div>
+
             <div className="mt-2 flex items-center justify-between text-sm text-stone-300">
                 <span>
-                    Aye {aye} • Nay {nay} • Abstain {abstainTotal} • Absent {absent}
+                    Aye {aye} • Nay {nay} • Abstain {abstain} • Absent {absent}
                 </span>
                 <span>{thresholdCount} of {totalMembers} required</span>
             </div>
