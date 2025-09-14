@@ -1,7 +1,7 @@
-1. Create Treaty Backend -> Update Frontend
-2. Create Amendment Backend
-3. Create Amendment Frontend
-4. Create Voting Backend
-5. Create Voting Frontend
-6. Connect voting to treaty
-7. Other
+1. [DONE] Create Treaty Backend -> Update Frontend
+2. [TODO] Create Amendment Backend
+3. [TODO] Create Amendment Frontend
+4. [TODO] Create Voting Backend
+5. [TODO] Create Voting Frontend
+6. [TODO] Connect voting to treaty
+7. [TODO] Other

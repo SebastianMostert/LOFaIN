@@ -26,6 +26,9 @@ model User {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  Vote      Vote[]
+  Amendment Amendment[]
 }
 
 model Country {
@@ -41,6 +44,9 @@ model Country {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  Vote      Vote[]
+  Amendment Amendment[]
 }
 
 model CountryMapping {
@@ -105,4 +111,100 @@ model Authenticator {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, credentialID])
+}
+
+// Core treaty
+model Treaty {
+  id        String    @id @default(auto()) @map("_id") @db.ObjectId
+  title     String
+  slug      String    @unique
+  adopted   Boolean   @default(true)
+  adoptedAt DateTime?
+  preamble  String?
+  articles  Article[]
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  Amendment Amendment[]
+}
+
+model Article {
+  id       String @id @default(auto()) @map("_id") @db.ObjectId
+  treatyId String @db.ObjectId
+  order    Int
+  heading  String
+  body     String
+  treaty   Treaty @relation(fields: [treatyId], references: [id], onDelete: Cascade)
+
+  @@unique([treatyId, order])
+}
+
+// Amendments-only
+enum AmendmentOp {
+  ADD // add a new article (or new clause)
+  EDIT // replace body/heading of an existing article
+  REMOVE // remove an article
+}
+
+enum AmendmentStatus {
+  DRAFT
+  OPEN
+  CLOSED
+  PASSED
+  FAILED
+}
+
+model Amendment {
+  id              String          @id @default(auto()) @map("_id") @db.ObjectId
+  treatyId        String          @db.ObjectId
+  // Target: if EDIT/REMOVE → target existing article; if ADD → can be null + newOrder provided
+  targetArticleId String?         @db.ObjectId
+  op              AmendmentOp
+  slug            String          @unique // e.g., "amendment-1"
+  title           String
+  rationale       String? // explain why
+  // Proposed content
+  newHeading      String? // for ADD/EDIT
+  newBody         String? // for ADD/EDIT
+  newOrder        Int? // for ADD (where to insert)
+  // Voting
+  status          AmendmentStatus @default(DRAFT)
+  opensAt         DateTime?
+  closesAt        DateTime?
+  threshold       Float? // default 2/3 if null
+  eligibleCount   Int? // frozen at OPEN time
+  votes           Vote[]
+
+  treaty Treaty @relation(fields: [treatyId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  proposerCountryId String? @db.ObjectId
+  proposerUserId    String? @db.ObjectId
+
+  proposerCountry Country? @relation(fields: [proposerCountryId], references: [id], onDelete: SetNull)
+  proposerUser    User?    @relation(fields: [proposerUserId], references: [id], onDelete: SetNull)
+}
+
+enum VoteChoice {
+  AYE
+  NAY
+  ABSTAIN
+}
+
+model Vote {
+  id          String     @id @default(auto()) @map("_id") @db.ObjectId
+  amendmentId String     @db.ObjectId
+  countryId   String     @db.ObjectId
+  userId      String?    @db.ObjectId
+  choice      VoteChoice
+  comment     String?
+  createdAt   DateTime   @default(now())
+
+  amendment Amendment @relation(fields: [amendmentId], references: [id], onDelete: Cascade)
+  country   Country   @relation(fields: [countryId], references: [id], onDelete: Cascade)
+  user      User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@unique([amendmentId, countryId]) // one vote per country per amendment
 }

@@ -1,5 +1,7 @@
 // prisma/seed.ts
 import { prisma } from "@/prisma";
+import fs from "fs";
+import path from "path";
 
 async function main() {
   // Countries
@@ -90,6 +92,40 @@ async function main() {
   });
 
   console.log("Seeded 5 countries and Discord mappings ✅");
+
+
+  const filePath = path.join(__dirname, "treaty.json");
+  const data = JSON.parse(fs.readFileSync(filePath, "utf-8"));
+
+  // Upsert treaty
+  const treaty = await prisma.treaty.upsert({
+    where: { slug: data.slug },
+    update: {},
+    create: {
+      title: data.title,
+      slug: data.slug,
+      adopted: data.adopted,
+      adoptedAt: data.adoptedAt ? new Date(data.adoptedAt) : null,
+      preamble: data.preamble ?? null,
+    },
+  });
+
+  // Clear old articles (idempotent reset)
+  await prisma.article.deleteMany({ where: { treatyId: treaty.id } });
+
+  // Insert articles in order
+  for (const a of data.articles) {
+    await prisma.article.create({
+      data: {
+        treatyId: treaty.id,
+        order: a.order,
+        heading: a.heading,
+        body: a.body,
+      },
+    });
+  }
+
+  console.log(`✅ Seeded treaty "${treaty.title}" with ${data.articles.length} articles.`);
 }
 
 main().catch((e) => {
