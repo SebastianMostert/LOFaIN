@@ -7,7 +7,7 @@ import { redirect } from "next/navigation";
 
 /* ---------------- types ---------------- */
 
-export type VoteChoice = "AYE" | "NAY" | "ABSTAIN";
+export type VoteChoice = "AYE" | "NAY" | "ABSTAIN" | "ABSENT";
 
 /* -------------- helpers --------------- */
 

@@ -195,6 +195,7 @@ enum VoteChoice {
   AYE
   NAY
   ABSTAIN
+  ABSENT
 }
 
 model Vote {
