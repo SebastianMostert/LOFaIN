@@ -24,3 +24,20 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+.prose-dropcap:first-letter {
+  float: left;
+  font-family: var(--font-epunda, serif);
+  font-weight: 700;
+  font-size: 3.25rem;
+  line-height: 0.85;
+  padding-right: 0.25rem;
+  margin-top: 0.2rem;
+  color: #e7e5e4;
+  /* stone-200 */
+}
+
+/* Prevent scrollbar */
+body::-webkit-scrollbar {
+  display: none;
+}
