@@ -1,3 +1,4 @@
+import { pctFloat } from "@/utils/voteStats";
 import type { CSSProperties } from "react";
 
 type Choice = "AYE" | "NAY" | "ABSTAIN" | "ABSENT";
@@ -19,8 +20,6 @@ export default function VoteMeter({
     const absent = Math.max(0, totalMembers - votes.length);
 
     const neutral = abstain + absent;
-
-    const pctFloat = (n: number, d: number) => (d ? Math.max(0, Math.min(100, (n / d) * 100)) : 0);
 
     const ayePct = pctFloat(aye, totalMembers);
     const nayPct = pctFloat(nay, totalMembers);
