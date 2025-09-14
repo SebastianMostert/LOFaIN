@@ -2,6 +2,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/prisma";
 import { auth } from "@/auth";
+import z from "zod";
 
 async function nextAmendmentSlug() {
     // Find the highest "amendment-#" and increment
@@ -17,6 +18,34 @@ async function nextAmendmentSlug() {
     return `amendment-${max + 1}`;
 }
 
+export const amendmentSchema = z
+    .object({
+        title: z.string().min(1, "Missing title"),
+        rationale: z.string().nullable().optional(),
+        op: z.enum(["ADD", "EDIT", "REMOVE"]),
+        treatySlug: z.string().default("league-treaty-1900"),
+        targetArticleId: z.string().nullable().optional(),
+        newHeading: z.string().nullable().optional(),
+        newBody: z.string().nullable().optional(),
+        newOrder: z.number().int().nullable().optional(),
+    })
+    .superRefine((data, ctx) => {
+        if ((data.op === "REMOVE" || data.op === "EDIT") && !data.targetArticleId) {
+            ctx.addIssue({
+                code: "custom",
+                path: ["targetArticleId"],
+                message: "targetArticleId is required for EDIT/REMOVE",
+            });
+        }
+        if ((data.op === "ADD" || data.op === "EDIT") && !data.newBody) {
+            ctx.addIssue({
+                code: "custom",
+                path: ["newBody"],
+                message: "newBody is required for ADD/EDIT",
+            });
+        }
+    });
+
 export async function POST(req: Request) {
     const session = await auth();
     if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -24,11 +53,16 @@ export async function POST(req: Request) {
     const countryId = session.user?.countryId as string | undefined;
     if (!countryId) return NextResponse.json({ error: "No country assigned" }, { status: 403 });
 
+    const parsed = amendmentSchema.safeParse(await req.json());
+    if (!parsed.success) {
+        return NextResponse.json({ errors: parsed.error.flatten() }, { status: 400 });
+    }
+
     const {
         title,
         rationale,
-        op, // "ADD" | "EDIT" | "REMOVE"
-        treatySlug = "league-treaty-1900",
+        op,
+        treatySlug,
         targetArticleId,
         newHeading,
         newBody,
