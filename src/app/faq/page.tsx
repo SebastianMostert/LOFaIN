@@ -1,7 +1,21 @@
 import Link from "next/link";
 import { epunda } from "@/app/fonts";
+import type { Metadata } from "next";
 
-export const metadata = { title: "FAQ • League" };
+const baseUrl = "https://example.com";
+
+export const metadata: Metadata = {
+  title: "FAQ • League",
+  description: "Answers to common questions about the League of Free and Independent Nations.",
+  keywords: ["faq", "questions", "league"],
+  alternates: { canonical: `${baseUrl}/faq` },
+  openGraph: {
+    title: "FAQ • League",
+    description: "Answers to common questions about the League of Free and Independent Nations.",
+    url: `${baseUrl}/faq`,
+    images: [{ url: `${baseUrl}/logo.png`, alt: "League logo" }],
+  },
+};
 
 export default function FAQPage() {
   return (

@@ -3,8 +3,24 @@ import { prisma } from "@/prisma";
 import { epunda } from "@/app/fonts";
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
+import type { Metadata } from "next";
 import NewAmendmentComposer from "@/components/NewAmendmentComposer";
 import { createAmendmentAction } from "@/utils/api/amendments";
+
+const baseUrl = "https://example.com";
+
+export const metadata: Metadata = {
+  title: "Propose Amendment • League",
+  description: "Draft and submit a new amendment to the League treaty.",
+  keywords: ["amendment", "proposal", "league"],
+  alternates: { canonical: `${baseUrl}/amendments/new` },
+  openGraph: {
+    title: "Propose Amendment • League",
+    description: "Draft and submit a new amendment to the League treaty.",
+    url: `${baseUrl}/amendments/new`,
+    images: [{ url: `${baseUrl}/logo.png`, alt: "League logo" }],
+  },
+};
 
 export default async function NewAmendmentPage() {
   const session = await auth();

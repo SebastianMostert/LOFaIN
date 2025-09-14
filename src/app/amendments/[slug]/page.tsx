@@ -2,6 +2,7 @@ import { prisma } from "@/prisma";
 import { closeExpiredAmendments } from "@/utils/amendments";
 import { epunda } from "@/app/fonts";
 import { notFound, redirect } from "next/navigation";
+import type { Metadata } from "next";
 import FlagImage from "@/components/FlagImage";
 import SlideOutVoteTab from "@/components/Vote/SlideOutVoteTab";
 import DiffPreview from "@/components/DiffPreview";
@@ -11,6 +12,43 @@ import VoteSummary from "@/components/Amendment/VoteSummary";
 import { auth } from "@/auth";
 
 export const dynamic = "force-dynamic";
+
+const baseUrl = "https://example.com";
+
+export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
+    const { slug } = await params;
+    const amendment = await prisma.amendment.findUnique({
+        where: { slug },
+        select: { title: true, rationale: true },
+    });
+    const url = `${baseUrl}/amendments/${slug}`;
+    if (!amendment) {
+        return {
+            title: "Amendment • League",
+            description: "View details of a treaty amendment.",
+            keywords: ["amendment", "league"],
+            alternates: { canonical: url },
+            openGraph: {
+                title: "Amendment • League",
+                description: "View details of a treaty amendment.",
+                url,
+                images: [{ url: `${baseUrl}/logo.png`, alt: "League logo" }],
+            },
+        };
+    }
+    return {
+        title: `${amendment.title} • League`,
+        description: amendment.rationale ?? "Details of a treaty amendment.",
+        keywords: ["amendment", "league", amendment.title],
+        alternates: { canonical: url },
+        openGraph: {
+            title: `${amendment.title} • League`,
+            description: amendment.rationale ?? "Details of a treaty amendment.",
+            url,
+            images: [{ url: `${baseUrl}/logo.png`, alt: "League logo" }],
+        },
+    };
+}
 
 type Choice = "AYE" | "NAY" | "ABSTAIN" | "ABSENT";
 
