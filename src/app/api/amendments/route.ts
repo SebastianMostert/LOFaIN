@@ -2,7 +2,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/prisma";
 import { auth } from "@/auth";
-import { amendmentSchema } from "@/utils/api/amendments";
+import { amendmentSchema } from "@/utils/zodSchema";
 
 async function nextAmendmentSlug() {
     // Find the highest "amendment-#" and increment
