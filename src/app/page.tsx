@@ -2,6 +2,9 @@
 // app/page.tsx — Home, 1900 Style with Epunda Sans
 import Link from "next/link";
 import { epunda } from "@/app/fonts";
+import { prisma } from "@/prisma";
+
+export const dynamic = "force-dynamic";
 
 function Stat({ label, value }: { label: string; value: string }) {
   return (
@@ -16,7 +19,13 @@ const P = ({ children }: { children: React.ReactNode }) => (
   <p className="mt-3 leading-relaxed text-stone-300">{children}</p>
 );
 
-export default function HomePage() {
+export default async function HomePage() {
+  const [amendmentCount, memberCount, articleCount] = await Promise.all([
+    prisma.amendment.count(),
+    prisma.country.count({ where: { isActive: true } }),
+    prisma.article.count({ where: { treaty: { adopted: true } } }),
+  ]);
+
   return (
     <>
       {/* Hero */}
@@ -61,9 +70,9 @@ export default function HomePage() {
 
           {/* Quick Stats */}
           <div className="mt-12 grid grid-cols-2 gap-3 sm:grid-cols-4">
-            <Stat label="Amendments" value="11" />
-            <Stat label="Member States" value="5" />
-            <Stat label="Ratified Articles" value="14" />
+            <Stat label="Amendments" value={amendmentCount.toString()} />
+            <Stat label="Member States" value={memberCount.toString()} />
+            <Stat label="Ratified Articles" value={articleCount.toString()} />
           </div>
         </div>
       </section >
