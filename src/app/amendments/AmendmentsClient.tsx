@@ -24,12 +24,17 @@ const escapeRegExp = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
 export default function AmendmentsClient({ items }: { items: Amendment[] }) {
     const [query, setQuery] = useState("");
+    const [status, setStatus] = useState<AmendmentStatus | "ALL">("ALL");
     const normalized = query.trim().toLowerCase();
 
     const filtered = useMemo(() => {
-        if (!normalized) return items;
-        return items.filter((a) => a.title.toLowerCase().includes(normalized));
-    }, [items, normalized]);
+        let list = items;
+        if (status !== "ALL") {
+            list = list.filter((a) => a.status === status);
+        }
+        if (!normalized) return list;
+        return list.filter((a) => a.title.toLowerCase().includes(normalized));
+    }, [items, normalized, status]);
 
     const highlight = (text: string): React.ReactNode => {
         if (!normalized) return text;
@@ -61,14 +66,23 @@ export default function AmendmentsClient({ items }: { items: Amendment[] }) {
                 </Link>
             </div>
 
-            <div className="mt-6">
+            <div className="mt-6 flex flex-col gap-2 sm:flex-row">
                 <input
                     type="text"
                     value={query}
                     onChange={(e) => setQuery(e.target.value)}
                     placeholder="Search amendments..."
-                    className="w-full rounded-md border border-stone-700 bg-stone-900 px-3 py-2 text-sm text-stone-100 placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-stone-500"
+                    className="flex-1 rounded-md border border-stone-700 bg-stone-900 px-3 py-2 text-sm text-stone-100 placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-stone-500"
                 />
+                <select
+                    value={status}
+                    onChange={(e) => setStatus(e.target.value as AmendmentStatus | "ALL")}
+                    className="rounded-md border border-stone-700 bg-stone-900 px-3 py-2 text-sm text-stone-100 focus:outline-none focus:ring-2 focus:ring-stone-500"
+                >
+                    <option value="ALL">All</option>
+                    <option value="OPEN">Open</option>
+                    <option value="CLOSED">Closed</option>
+                </select>
             </div>
 
             <div className="mt-8 grid gap-4 md:grid-cols-2">
