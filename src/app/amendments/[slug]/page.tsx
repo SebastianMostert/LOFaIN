@@ -37,6 +37,7 @@ export default async function AmendmentPage({ params }: { params: Promise<{ slug
         select: {
             id: true, slug: true, title: true, rationale: true,
             status: true, result: true, opensAt: true, closesAt: true, eligibleCount: true,
+            failureReason: true,
             op: true, newHeading: true, newBody: true, targetArticleId: true,
             votes: { select: { choice: true, countryId: true } },
         },
@@ -53,11 +54,17 @@ export default async function AmendmentPage({ params }: { params: Promise<{ slug
     const countries = await prisma.country.findMany({
         where: { isActive: true },
         orderBy: { name: "asc" },
-        select: { id: true, name: true, slug: true, code: true },
+        select: { id: true, name: true, slug: true, code: true, hasVeto: true },
     });
 
     const byCountry = new Map<string, Choice>();
     amendment.votes.forEach(v => byCountry.set(v.countryId, v.choice as Choice));
+
+    const countriesMap = new Map(countries.map(c => [c.id, c]));
+    const vetoers = amendment.votes
+        .filter(v => v.choice === "NAY" && countriesMap.get(v.countryId)?.hasVeto)
+        .map(v => countriesMap.get(v.countryId)!.name);
+    const vetoUsed = vetoers.length > 0;
 
     const totalMembers = amendment.eligibleCount || countries.length || 1;
 
@@ -80,12 +87,18 @@ export default async function AmendmentPage({ params }: { params: Promise<{ slug
                 <div className="mx-auto mt-3 h-[3px] w-40 bg-red-600" />
 
                 {/* Status line + banner */}
-                <div className="mt-3 flex items-center justify-center gap-3">
+                <div className="mt-3 flex flex-col items-center justify-center gap-3">
                     <StatusBanner
                         status={status}
                         result={result}
                         closesAt={amendment.closesAt ?? null}
+                        failureReason={amendment.failureReason ?? null}
                     />
+                    {status === "OPEN" && vetoUsed && (
+                        <div className="rounded-md border border-rose-700 bg-rose-900/40 px-3 py-1 text-sm text-rose-200">
+                            Veto used by {vetoers.join(", ")} – amendment will fail unless withdrawn
+                        </div>
+                    )}
                 </div>
             </header>
 
@@ -145,10 +158,12 @@ function StatusBanner({
     status,
     result,
     closesAt,
+    failureReason,
 }: {
     status: "OPEN" | "CLOSED" | string;
     result: "PASSED" | "FAILED" | null | string;
     closesAt: Date | null;
+    failureReason: string | null;
 }) {
     if (status === "OPEN") {
         return (
@@ -167,8 +182,9 @@ function StatusBanner({
             ✓ Passed{closesAt ? ` • ${new Date(closesAt).toLocaleString()}` : ""}
         </div>
     ) : (
-        <div className={`${base} border border-rose-700 bg-rose-900/40 text-rose-200`}>
-            ✗ Failed{closesAt ? ` • ${new Date(closesAt).toLocaleString()}` : ""}
+        <div className={`${base} flex-col items-start border border-rose-700 bg-rose-900/40 text-rose-200`}>
+            <div>✗ Failed{closesAt ? ` • ${new Date(closesAt).toLocaleString()}` : ""}</div>
+            {failureReason && <div className="mt-1 text-xs text-rose-300">{failureReason}</div>}
         </div>
     );
 }
