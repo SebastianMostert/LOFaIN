@@ -2,6 +2,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/prisma";
 import { auth } from "@/auth";
+import { closeExpiredAmendments } from "@/utils/amendments";
 
 export async function POST(req: Request, { params }: { params: Promise<{ slug: string }> }) {
     const awaitedParams = await params;
@@ -13,16 +14,17 @@ export async function POST(req: Request, { params }: { params: Promise<{ slug: s
 
     const { choice, comment } = await req.json() as { choice: "AYE" | "NAY" | "ABSTAIN"; comment?: string };
 
+    await closeExpiredAmendments(awaitedParams.slug);
+
     const a = await prisma.amendment.findUnique({
         where: { slug: awaitedParams.slug },
-        select: { id: true, status: true, opensAt: true, closesAt: true },
+        select: { id: true, status: true, opensAt: true },
     });
     if (!a) return NextResponse.json({ error: "Amendment not found" }, { status: 404 });
     if (a.status !== "OPEN") return NextResponse.json({ error: "Voting is closed" }, { status: 400 });
 
     const now = new Date();
     if (a.opensAt && now < a.opensAt) return NextResponse.json({ error: "Voting not open yet" }, { status: 400 });
-    if (a.closesAt && now > a.closesAt) return NextResponse.json({ error: "Voting period ended" }, { status: 400 });
 
     const vote = await prisma.vote.upsert({
         where: { amendmentId_countryId: { amendmentId: a.id, countryId } },
