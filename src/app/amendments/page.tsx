@@ -2,7 +2,6 @@
 import Link from "next/link";
 import { prisma } from "@/prisma";
 import { epunda } from "@/app/fonts";
-import { closeExpiredAmendments } from "@/utils/amendments";
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import { AmendmentResult, AmendmentStatus } from "@prisma/client";
@@ -34,8 +33,6 @@ const hasClosed = (closesAt: Date) => new Date() >= closesAt;
 export default async function AmendmentsPage() {
     const session = await auth();
     if (!session) redirect("/api/auth/signin?callbackUrl=/amendments");
-
-    await closeExpiredAmendments();
 
     const items = await prisma.amendment.findMany({
         orderBy: { createdAt: "desc" },

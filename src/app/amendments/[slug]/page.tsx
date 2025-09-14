@@ -1,5 +1,4 @@
 import { prisma } from "@/prisma";
-import { closeExpiredAmendments } from "@/utils/amendments";
 import { epunda } from "@/app/fonts";
 import { notFound, redirect } from "next/navigation";
 import FlagImage from "@/components/FlagImage";
@@ -27,8 +26,6 @@ export default async function AmendmentPage({ params }: { params: Promise<{ slug
     const session = await auth();
     const user = session?.user;
     if (!session) redirect("/api/auth/signin?callbackUrl=/amendments/" + awaitedParams.slug);
-
-    await closeExpiredAmendments(awaitedParams.slug);
 
     const amendment = await prisma.amendment.findUnique({
         where: { slug: awaitedParams.slug },
