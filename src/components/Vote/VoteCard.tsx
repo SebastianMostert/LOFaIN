@@ -1,32 +1,17 @@
 "use client";
 
-import { useEffect, useState, useTransition } from "react";
+import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 
 type Choice = "AYE" | "NAY" | "ABSTAIN" | "ABSENT";
 type Status = "OPEN" | "CLOSED" | string;
 
-export default function VoteCard({ slug, status }: { slug: string; status: Status }) {
-    const [choice, setChoice] = useState<Choice | null>(null);
+export default function VoteCard({ slug, status, myVote }: { slug: string; status: Status; myVote: Choice | null }) {
+    const [choice, setChoice] = useState<Choice | null>(myVote);
     const [pending, startTransition] = useTransition();
     const router = useRouter();
 
     const canVote = status === "OPEN";
-
-    useEffect(() => {
-        // hydrate current vote for the user’s country (optional mini-call)
-        // You can skip this if you already pass initialChoice from server.
-        (async () => {
-            try {
-                // TODO: Fix - Doesnt exist
-                const res = await fetch(`/api/amendments/${encodeURIComponent(slug)}/my-vote`, { cache: "no-store" });
-                if (res.ok) {
-                    const j = (await res.json()) as { choice: Choice | null };
-                    setChoice(j.choice ?? null);
-                }
-            } catch { /* silent */ }
-        })();
-    }, [slug]);
 
     async function vote(next: Choice) {
         if (!canVote || pending) return;
@@ -80,10 +65,9 @@ export default function VoteCard({ slug, status }: { slug: string; status: Statu
             </div>
 
             <div className="grid gap-2">
-                <Btn label="Yes" value="AYE" bg="bg-emerald-600" outline="border-stone-400" />
-                <Btn label="No" value="NAY" bg="bg-rose-600" outline="border-stone-400" />
+                <Btn label="Aye" value="AYE" bg="bg-emerald-600" outline="border-stone-400" />
+                <Btn label="Nay" value="NAY" bg="bg-rose-600" outline="border-stone-400" />
                 <Btn label="Abstain" value="ABSTAIN" bg="bg-stone-500" outline="border-stone-400" />
-                <Btn label="Absent" value="ABSENT" bg="bg-stone-400" outline="border-stone-400" />
             </div>
         </div>
     );

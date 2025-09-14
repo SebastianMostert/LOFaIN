@@ -8,17 +8,20 @@ type Status = "OPEN" | "CLOSED" | string;
 export default function SlideOutVoteTab({
     slug,
     status,
+    myVote,
 }: {
     slug: string;
     status: Status;
+    myVote: "AYE" | "NAY" | "ABSTAIN" | "ABSENT" | null;
 }) {
     const [open, setOpen] = useState(false);
     const panelRef = useRef<HTMLDivElement | null>(null);
+    const buttonPanelRef = useRef<HTMLButtonElement | null>(null);
 
-    // Close on ESC
+    // Close/Open on ESC
     useEffect(() => {
         function onKey(e: KeyboardEvent) {
-            if (e.key === "Escape") setOpen(false);
+            if (e.key === "Escape") setOpen((prev) => !prev);
         }
         window.addEventListener("keydown", onKey);
         return () => window.removeEventListener("keydown", onKey);
@@ -29,13 +32,18 @@ export default function SlideOutVoteTab({
         function onClick(e: MouseEvent) {
             if (!open) return;
             const el = panelRef.current;
-            if (el && !el.contains(e.target as Node)) setOpen(false);
+            const buttonEl = buttonPanelRef.current;
+
+            const outsideOfEl = el && !el.contains(e.target as Node);
+            const outsideOfButtonEl = buttonEl && !buttonEl.contains(e.target as Node);
+
+            if (outsideOfEl && outsideOfButtonEl) setOpen(false);
         }
         document.addEventListener("mousedown", onClick);
         return () => document.removeEventListener("mousedown", onClick);
     }, [open]);
 
-    if(!open) return null;
+    if (status === "CLOSED") return null
 
     return (
         <>
@@ -57,31 +65,27 @@ export default function SlideOutVoteTab({
                         </button>
                     </div>
                     <div className="p-3">
-                        <VoteCard slug={slug} status={status} />
+                        <VoteCard slug={slug} status={status} myVote={myVote} />
                     </div>
                     <div className="px-3 pb-3 text-center text-xs text-stone-600">
-                        Press <kbd className="rounded border px-1">Esc</kbd> to close
+                        Press <kbd className="rounded border px-1">ESC</kbd> to close
                     </div>
                 </div>
             </div>
 
             {/* Handle / Tab */}
             <button
-                onClick={() => setOpen((v) => !v)}
+                onClick={() => setOpen(!open)}
                 aria-expanded={open}
                 aria-controls="vote-panel"
-                className="fixed right-0 top-1/2 z-50 -translate-y-1/2 translate-x-[calc(100%-14px)] rounded-l-md border-2 border-stone-900 bg-white px-2 py-3 shadow-[0_2px_0_rgba(0,0,0,1)] hover:bg-stone-50"
+                ref={buttonPanelRef}
+                className="fixed right-0 top-1/2 z-50 -translate-y-1/2
+             rounded-l-md border-2 border-stone-900 bg-white
+             px-2 py-3 shadow-[0_2px_0_rgba(0,0,0,1)] hover:bg-stone-50"
                 title="Vote"
             >
                 <div className="flex rotate-180 items-center gap-2 [writing-mode:vertical-rl]">
-                    <span className="text-[11px] font-bold tracking-wider text-stone-900">
-                        VOTE
-                    </span>
-                    {/* little chevron */}
-                    <span
-                        className={`mx-auto inline-block h-0 w-0 border-x-[6px] border-b-[8px] border-x-transparent border-b-stone-900
-              ${open ? "rotate-180" : ""}`}
-                    />
+                    <span className="text-[11px] font-bold tracking-wider text-stone-900">VOTE</span>
                 </div>
             </button>
         </>

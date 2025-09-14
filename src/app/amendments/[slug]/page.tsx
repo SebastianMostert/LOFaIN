@@ -1,10 +1,11 @@
 import { prisma } from "@/prisma";
 import { closeExpiredAmendments } from "@/utils/amendments";
 import { epunda } from "@/app/fonts";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import FlagImage from "@/components/FlagImage";
 import SlideOutVoteTab from "@/components/Vote/SlideOutVoteTab";
 import DiffPreview from "@/components/DiffPreview";
+import { auth } from "@/auth";
 
 export const dynamic = "force-dynamic";
 
@@ -24,6 +25,11 @@ const pct = (n: number, d: number) => (d ? clampPct((n / d) * 100) : 0);
 
 export default async function AmendmentPage({ params }: { params: Promise<{ slug: string }> }) {
     const awaitedParams = await params;
+
+    const session = await auth();
+    const user = session?.user;
+    if (!session) redirect("/api/auth/signin?callbackUrl=/amendments/" + awaitedParams.slug);
+
     await closeExpiredAmendments(awaitedParams.slug);
 
     const amendment = await prisma.amendment.findUnique({
@@ -56,14 +62,17 @@ export default async function AmendmentPage({ params }: { params: Promise<{ slug
     const totalMembers = amendment.eligibleCount || countries.length || 1;
 
     // "OPEN" | "CLOSED"
-    const status = amendment.status;
-
     // "PASSED" | "FAILED"
+    const status = amendment.status;
     const result = amendment.result;
+
+    // My vote
+    const userCountryId = user?.countryId;
+    const myVote = userCountryId ? byCountry.get(userCountryId) : undefined as Choice | undefined;
 
     return (
         <main className="mx-auto max-w-7xl px-4 py-10 text-stone-100">
-            <SlideOutVoteTab slug={amendment.slug} status={status} />
+            <SlideOutVoteTab slug={amendment.slug} status={status} myVote={myVote || null} />
 
             {/* Title */}
             <header className="text-center">
@@ -243,7 +252,7 @@ const Meter = ({
     const nay = votes.filter(v => v.choice === "NAY").length;
     const abstain = votes.filter(v => v.choice === "ABSTAIN").length;
     const absent = totalMembers - votes.length;
-    const abstainTotal = abstain + absent;
+    const abstainTotal = abstain;
 
     const ayePct = pct(aye, totalMembers);
     const thresholdCount = Math.ceil((2 / 3) * totalMembers);
@@ -272,7 +281,7 @@ const Meter = ({
             </div>
             <div className="mt-2 flex items-center justify-between text-sm text-stone-300">
                 <span>
-                    Aye {aye} • Nay {nay} • Abstain {abstainTotal}
+                    Aye {aye} • Nay {nay} • Abstain {abstainTotal} • Absent {absent}
                 </span>
                 <span>{thresholdCount} of {totalMembers} required</span>
             </div>

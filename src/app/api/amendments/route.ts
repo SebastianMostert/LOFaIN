@@ -19,7 +19,6 @@ async function nextAmendmentSlug() {
 
 export async function POST(req: Request) {
     const session = await auth();
-    console.log(session);
     if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
     const countryId = session.user?.countryId as string | undefined;
