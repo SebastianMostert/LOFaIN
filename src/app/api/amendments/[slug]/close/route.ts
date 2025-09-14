@@ -11,11 +11,11 @@ export async function POST(req: Request, { params }: { params: Promise<{ slug: s
 
     const a = await prisma.amendment.findUnique({
         where: { slug: awaitedParams.slug },
-        select: { id: true, threshold: true, eligibleCount: true },
+        select: { id: true, threshold: true, eligibleCount: true, quorum: true },
     });
     if (!a) return NextResponse.json({ error: "Amendment not found" }, { status: 404 });
 
-    const { passed, counts, eligible, needed } = await finalizeAmendment(a);
+    const { passed, counts, eligible, needed, quorum, totalVotes, failureReason } = await finalizeAmendment(a);
 
     return NextResponse.json({
         status: "CLOSED",
@@ -23,5 +23,8 @@ export async function POST(req: Request, { params }: { params: Promise<{ slug: s
         counts,
         eligible,
         needed,
+        quorum,
+        totalVotes,
+        failureReason,
     });
 }

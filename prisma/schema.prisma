@@ -180,6 +180,7 @@ model Amendment {
   closesAt        DateTime?
   threshold       Float? // default 2/3 if null
   eligibleCount   Int? // frozen at OPEN time
+  quorum          Int? @default(0) // minimum votes required
   votes           Vote[]
 
   treaty Treaty @relation(fields: [treatyId], references: [id], onDelete: Cascade)
@@ -192,6 +193,9 @@ model Amendment {
 
   proposerCountry Country? @relation(fields: [proposerCountryId], references: [id], onDelete: SetNull)
   proposerUser    User?    @relation(fields: [proposerUserId], references: [id], onDelete: SetNull)
+
+  // Reason for failure, if any
+  failureReason String?
 }
 
 enum VoteChoice {
