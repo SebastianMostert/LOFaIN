@@ -20,7 +20,6 @@ const LogoPart = ({ size }: { size: number }) => {
 };
 
 const FlagSignOutButton = ({ size, countryCode }: { size: number; countryCode: string }) => {
-  console.log("countryCode", countryCode);
   return (
     <form
       action={async () => {
@@ -59,8 +58,8 @@ const Links: LinkItem[] = [
 
 export default async function Header() {
   const session = await auth();
-  const isLoggedIn = session?.user;
-  const countryCode =  "DEFAULT";
+  const user = session?.user;
+  const countryCode = user?.country?.code ?? "DEFAULT";
 
   return (
     <header className="w-full sticky top-0 z-[999] bg-sky-200 border-b-4 border-red-700 shadow-md">
@@ -71,7 +70,7 @@ export default async function Header() {
         {/* Right: Navigation */}
         <nav className="flex items-center gap-4">
           {Links.filter((link) => {
-            if (link.auth && !isLoggedIn) return false; // requires auth but not logged in
+            if (link.auth && !user) return false; // requires auth but not logged in
             return true;
           }).map((link, i) => {
             const t = link.href === "/logout";
@@ -79,7 +78,7 @@ export default async function Header() {
               <FlagSignOutButton key={i} size={3.5} countryCode={countryCode} /> :
               <NavButton key={i} href={link.href} label={link.label} />
           })}
-          {!isLoggedIn && (
+          {!user && (
             <form
               action={async () => {
                 "use server"
