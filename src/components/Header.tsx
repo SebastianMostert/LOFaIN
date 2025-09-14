@@ -2,7 +2,6 @@ import Link from "next/link";
 import Image from "next/image";
 import { auth, signIn, signOut } from "@/auth";
 import NavButton from "./NavButton";
-import { getCsrfToken } from "next-auth/react";
 
 const LogoPart = ({ size }: { size: number }) => {
   return (
@@ -20,7 +19,7 @@ const LogoPart = ({ size }: { size: number }) => {
   );
 };
 
-const FlagSignOutButton = ({ size, countryCode, csrfToken }: { size: number; countryCode: string; csrfToken: string }) => {
+const FlagSignOutButton = ({ size, countryCode }: { size: number; countryCode: string; }) => {
   return (
     <form
       method="post"
@@ -29,7 +28,6 @@ const FlagSignOutButton = ({ size, countryCode, csrfToken }: { size: number; cou
         await signOut()
       }}
     >
-      <input type="hidden" name="csrfToken" value={csrfToken} />
       <button
         type="submit"
       >
@@ -63,7 +61,6 @@ export default async function Header() {
   const session = await auth();
   const user = session?.user;
   const countryCode = user?.country?.code ?? "DEFAULT";
-  const csrfToken = await getCsrfToken();
 
   return (
     <header className="w-full sticky top-0 z-[999] bg-sky-200 border-b-4 border-red-700 shadow-md">
@@ -79,32 +76,31 @@ export default async function Header() {
           }).map((link, i) => {
             const t = link.href === "/logout";
             return t ? (
-              <FlagSignOutButton key={i} size={3.5} countryCode={countryCode} csrfToken={csrfToken} />
+              <FlagSignOutButton key={i} size={3.5} countryCode={countryCode} />
             ) : (
               <NavButton key={i} href={link.href} label={link.label} />
             )
           })}
-            {!user && (
-              <form
-                method="post"
-                action={async () => {
-                  "use server"
-                  await signIn("discord")
+          {!user && (
+            <form
+              method="post"
+              action={async () => {
+                "use server"
+                await signIn("discord")
+              }}
+            >
+              <button
+                type="submit"
+                className={"px-6 py-2 rounded-sm text-white text-lg bg-[#6e2e2e] hover:bg-[#823a3a] tracking-wide uppercase transition-transform active:translate-y-0.5 focus:outline-none"}
+                style={{
+                  background: "linear-gradient(180deg, #0d5a86 0%, #0a4566 100%)",
+                  boxShadow: "0 3px 6px rgba(0,0,0,0.45)",
                 }}
               >
-                <input type="hidden" name="csrfToken" value={csrfToken} />
-                <button
-                  type="submit"
-                  className={"px-6 py-2 rounded-sm text-white text-lg bg-[#6e2e2e] hover:bg-[#823a3a] tracking-wide uppercase transition-transform active:translate-y-0.5 focus:outline-none"}
-                  style={{
-                    background: "linear-gradient(180deg, #0d5a86 0%, #0a4566 100%)",
-                    boxShadow: "0 3px 6px rgba(0,0,0,0.45)",
-                  }}
-                >
-                  Sign In
-                </button>
-              </form>
-            )}
+                Sign In
+              </button>
+            </form>
+          )}
         </nav>
       </div>
     </header>
