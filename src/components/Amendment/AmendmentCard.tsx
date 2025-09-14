@@ -23,7 +23,7 @@ type Choice = "AYE" | "NAY" | "ABSTAIN" | "ABSENT";
 const hasOpened = (opensAt: Date) => new Date() >= opensAt;
 const hasClosed = (closesAt: Date) => new Date() >= closesAt;
 
-const AmendmentCard = ({ amendment, counts, eligible }: { amendment: ExtendedAmendment, counts: Record<Exclude<Choice, "ABSENT">, number>, eligible: number }) => {
+const AmendmentCard = ({ amendment, counts, eligible, highlight }: { amendment: ExtendedAmendment, counts: Record<Exclude<Choice, "ABSENT">, number>, eligible: number, highlight?: (s: string) => React.ReactNode }) => {
     const totalVotes = counts.AYE + counts.NAY + counts.ABSTAIN;
     const absent = Math.max(0, eligible - totalVotes);
 
@@ -52,7 +52,7 @@ const AmendmentCard = ({ amendment, counts, eligible }: { amendment: ExtendedAme
             </div>
 
             <h2 className={`${epunda.className} mt-1 text-lg font-semibold text-stone-100`}>
-                {amendment.title}
+                {highlight ? highlight(amendment.title) : amendment.title}
             </h2>
 
             {/* Meter */}
