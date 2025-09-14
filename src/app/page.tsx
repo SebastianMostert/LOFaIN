@@ -73,7 +73,7 @@ export default function HomePage() {
         <article className="relative overflow-hidden rounded-lg border border-stone-700 bg-stone-900 p-6">
           <div className="mb-1 text-xs uppercase tracking-wide text-stone-400">Principal Instrument</div>
           <h3 className={`${epunda.className} text-lg font-semibold text-stone-100`}>
-            The Treaty of the League of Free and Independent Nations (1900)
+            The Treaty of the League of Free and Independent Nations
           </h3>
           <p className="mt-2 text-sm leading-relaxed text-stone-300">
             A solemn covenant securing mutual defence, equitable trade, and common councils among free and independent nations. This portal preserves the text entire and facilitates the casting of votes by delegates.
@@ -85,7 +85,7 @@ export default function HomePage() {
         </article>
 
         {/* Live Voting Snapshot */}
-        <div className="mt-12">
+        {/* <div className="mt-12">
           <div className="mb-6 flex items-end justify-between">
             <h2 className={`${epunda.className} text-xl font-semibold text-stone-100`}>Live Voting Tally</h2>
             <Link href="/vote" className="text-sm text-stone-400 hover:text-stone-200">Proceed to Vote</Link>
@@ -124,7 +124,7 @@ export default function HomePage() {
               <div className="mt-4 text-xs text-stone-400">Threshold: Two-Thirds Majority</div>
             </div>
           </div>
-        </div>
+        </div> */}
       </section >
     </>
   );

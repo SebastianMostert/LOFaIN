@@ -32,7 +32,7 @@ const FlagSignOutButton = ({ size, countryCode }: { size: number; countryCode: s
       >
         <Image
           src={"/flags/btn/" + countryCode.toLocaleLowerCase() + ".png"}
-          alt="USSR Flag"
+          alt="Country Flag"
           width={24 * size}
           height={16 * size}
           className="inline-block rounded-[2px]"
