@@ -1,4 +1,6 @@
 import { prisma } from "@/prisma";
+const POLL_INTERVAL_MS = 1000 * 60 * 60; // 1 hour
+const NOTIFY_WINDOW_MS = 1000 * 60 * 60 * 24; // 24 hours
 
 type FinalizeArgs = {
     id: string;
@@ -59,3 +61,34 @@ export async function closeExpiredAmendments(slug?: string) {
     });
     await Promise.all(due.map(a => finalizeAmendment(a)));
 }
+
+async function checkUpcomingClosures() {
+    const now = new Date();
+    const soon = new Date(now.getTime() + NOTIFY_WINDOW_MS);
+    const upcoming = await prisma.amendment.findMany({
+        where: { status: "OPEN", closesAt: { lte: soon, gt: now } },
+    });
+    if (upcoming.length > 0) {
+        console.log("Amendments closing soon:", upcoming.map(a => a.title));
+    }
+}
+
+async function checkNewlyOpened() {
+    const since = new Date(Date.now() - POLL_INTERVAL_MS);
+    const opened = await prisma.amendment.findMany({
+        where: { status: "OPEN", opensAt: { gte: since } },
+    });
+    if (opened.length > 0) {
+        console.log("New amendments opened:", opened.map(a => a.title));
+    }
+}
+
+export function startAmendmentWatcher() {
+    setInterval(async () => {
+        await checkUpcomingClosures();
+        await checkNewlyOpened();
+    }, POLL_INTERVAL_MS);
+}
+
+// Start the watcher when this module is imported
+startAmendmentWatcher();

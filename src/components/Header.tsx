@@ -1,6 +1,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { auth, signIn, signOut } from "@/auth";
+import { prisma } from "@/prisma";
 import NavButton from "./NavButton";
 
 const LogoPart = ({ size }: { size: number }) => {
@@ -61,8 +62,32 @@ export default async function Header() {
   const user = session?.user;
   const countryCode = user?.country?.code ?? "DEFAULT";
 
+  let pending = 0;
+  if (user?.countryId && user.id) {
+    const pref = await prisma.notificationSetting.findUnique({
+      where: { userId: user.id },
+    });
+    if (pref?.inAppOnClose !== false) {
+      const soon = new Date(Date.now() + 24 * 60 * 60 * 1000);
+      pending = await prisma.amendment.count({
+        where: {
+          status: "OPEN",
+          closesAt: { lte: soon, gt: new Date() },
+          votes: { none: { countryId: user.countryId } },
+        },
+      });
+    }
+  }
+
+  const showBanner = pending > 0;
+
   return (
     <header className="w-full sticky top-0 z-[999] bg-sky-200 border-b-4 border-red-700 shadow-md">
+      {showBanner && (
+        <div className="w-full bg-yellow-300 text-center py-2 font-semibold">
+          Your country has pending votes closing soon.
+        </div>
+      )}
       <div className="mx-auto flex max-w-8xl items-center justify-between px-6 py-3">
         {/* Left: Logo */}
         <LogoPart size={200} />
