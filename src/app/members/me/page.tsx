@@ -2,6 +2,7 @@
 import { redirect } from "next/navigation";
 import { epunda } from "@/app/fonts";
 import Link from "next/link";
+import Image from "next/image";
 import { auth } from "@/auth";
 import { getCountry } from "@/utils/country";
 
@@ -57,9 +58,17 @@ export default async function MyCountryPage() {
                             <li className="text-stone-400">No delegates yet.</li>
                         )}
                         {country.users.map(u => (
-                            <li key={u.id} className="flex items-center gap-3 rounded border border-stone-700 bg-stone-950/60 p-3">
-                                {/* eslint-disable-next-line @next/next/no-img-element */}
-                                <img src={u.image ?? "/logo.png"} alt="" className="h-8 w-8 rounded object-cover" />
+                            <li
+                                key={u.id}
+                                className="flex items-center gap-3 rounded border border-stone-700 bg-stone-950/60 p-3"
+                            >
+                                <Image
+                                    src={u.image ?? "/logo.png"}
+                                    alt={u.name ? `${u.name}'s avatar` : "Delegate avatar"}
+                                    className="h-8 w-8 rounded object-cover"
+                                    width={32}
+                                    height={32}
+                                />
                                 <span className="text-stone-200">{u.name ?? "Unnamed delegate"}</span>
                             </li>
                         ))}
