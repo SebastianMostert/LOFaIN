@@ -8,30 +8,39 @@ type Status = "OPEN" | "CLOSED" | string;
 
 export default function VoteCard({ slug, status, myVote }: { slug: string; status: Status; myVote: Choice | null }) {
     const [choice, setChoice] = useState<Choice | null>(myVote);
-    const [pending, startTransition] = useTransition();
+    const [error, setError] = useState<string | null>(null);
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [, startTransition] = useTransition();
     const router = useRouter();
 
     const canVote = status === "OPEN";
 
     async function vote(next: Choice) {
-        if (!canVote || pending) return;
+        if (!canVote || isSubmitting) return;
         const prev = choice;
         setChoice(next === "ABSENT" ? null : next);
+        setError(null);
+        setIsSubmitting(true);
 
-        const res = await fetch(`/api/amendments/${encodeURIComponent(slug)}/vote`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            cache: "no-store",
-            body: JSON.stringify({ choice: next }),
-        });
+        try {
+            const res = await fetch(`/api/amendments/${encodeURIComponent(slug)}/vote`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                cache: "no-store",
+                body: JSON.stringify({ choice: next }),
+            });
 
-        if (!res.ok) {
-            setChoice(prev);
-            const j = await res.json().catch(() => ({}));
-            alert(j?.error ?? "Failed to vote");
-            return;
+            if (!res.ok) {
+                setChoice(prev);
+                const j = await res.json().catch(() => ({}));
+                setError(j?.error ?? "Failed to vote");
+                return;
+            }
+            setError(null);
+            startTransition(() => router.refresh());
+        } finally {
+            setIsSubmitting(false);
         }
-        startTransition(() => router.refresh());
     }
 
     const Btn = ({
@@ -42,7 +51,7 @@ export default function VoteCard({ slug, status, myVote }: { slug: string; statu
             <button
                 type="button"
                 onClick={() => vote(value)}
-                disabled={!canVote || pending}
+                disabled={!canVote || isSubmitting}
                 className={`w-full rounded-md border px-4 py-3 text-lg font-semibold shadow-sm transition
           ${active ? `${bg} text-white border-stone-900` : `bg-stone-100 text-stone-900 ${outline}`}
           ${!canVote ? "opacity-60 cursor-not-allowed" : "hover:brightness-95"}
@@ -69,6 +78,12 @@ export default function VoteCard({ slug, status, myVote }: { slug: string; statu
                 <Btn label="Nay" value="NAY" bg="bg-rose-600" outline="border-stone-400" />
                 <Btn label="Abstain" value="ABSTAIN" bg="bg-stone-500" outline="border-stone-400" />
             </div>
+            {isSubmitting && (
+                <div className="mt-2 text-center text-sm text-stone-600">Submitting...</div>
+            )}
+            {error && (
+                <div className="mt-2 text-center text-sm text-rose-600">{error}</div>
+            )}
         </div>
     );
 }

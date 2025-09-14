@@ -22,7 +22,6 @@ const LogoPart = ({ size }: { size: number }) => {
 const FlagSignOutButton = ({ size, countryCode }: { size: number; countryCode: string; }) => {
   return (
     <form
-      method="post"
       action={async () => {
         "use server"
         await signOut()
