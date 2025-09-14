@@ -14,6 +14,12 @@ const Footer = () => {
             <Link href="/faq" className="hover:text-stone-200">
               FAQ
             </Link>
+            <Link
+              href="https://github.com/nrp-vote-website#public-api"
+              className="hover:text-stone-200"
+            >
+              API
+            </Link>
           </div>
         </div>
       </div>
