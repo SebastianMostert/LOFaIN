@@ -1,32 +1,7 @@
 // app/members/[slugOrCode]/page.tsx
-import { prisma } from "@/prisma";
 import { notFound } from "next/navigation";
 import { epunda } from "@/app/fonts";
-
-// Accepts /members/france or /members/FR /members/FRA
-async function getCountry(slugOrCode: string) {
-    const code = slugOrCode.toUpperCase();
-    const slug = slugOrCode.toLowerCase();
-
-    // Try by code, then by slug
-    const byCode = await prisma.country.findFirst({
-        where: { code },
-        select: {
-            id: true, name: true, slug: true, code: true, colorHex: true,
-            users: { select: { id: true, name: true, image: true }, take: 50 },
-        },
-    });
-    if (byCode) return byCode;
-
-    const bySlug = await prisma.country.findUnique({
-        where: { slug },
-        select: {
-            id: true, name: true, slug: true, code: true, colorHex: true,
-            users: { select: { id: true, name: true, image: true }, take: 50 },
-        },
-    });
-    return bySlug;
-}
+import { getCountry } from "@/utils/country";
 
 export async function generateMetadata({ params }: { params: Promise<{ slugOrCode: string }> }) {
     const awaitedParams = await params;

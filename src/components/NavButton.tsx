@@ -1,4 +1,3 @@
-// components/Header.tsx — Retro League Header with Logo + Epunda Sans
 "use client";
 
 import Link from "next/link";

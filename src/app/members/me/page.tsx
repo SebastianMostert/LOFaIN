@@ -1,9 +1,9 @@
 // app/members/me/page.tsx
-import { prisma } from "@/prisma";
 import { redirect } from "next/navigation";
 import { epunda } from "@/app/fonts";
 import Link from "next/link";
 import { auth } from "@/auth";
+import { getCountry } from "@/utils/country";
 
 export const metadata = { title: "My Country • League" };
 
@@ -12,10 +12,9 @@ export default async function MyCountryPage() {
     if (!session) redirect("/api/auth/signin?callbackUrl=/members/me");
 
     const user = session.user;
+    const countryCode = user.country?.code ?? null;
 
-    const countryId = user.countryId ?? null;
-
-    if (!countryId) {
+    if (!countryCode) {
         return (
             <section className="rounded-lg border border-stone-700 bg-stone-900 p-6">
                 <h2 className={`${epunda.className} text-xl font-semibold`}>No Country Assigned</h2>
@@ -29,13 +28,7 @@ export default async function MyCountryPage() {
         );
     }
 
-    const country = await prisma.country.findUnique({
-        where: { id: countryId },
-        select: {
-            id: true, name: true, slug: true, code: true, colorHex: true,
-            users: { select: { id: true, name: true, image: true }, take: 24 },
-        },
-    });
+    const country = await getCountry(countryCode)
 
     if (!country) {
         return (
