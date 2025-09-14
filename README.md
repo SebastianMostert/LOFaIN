@@ -1,5 +1,15 @@
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
+## Public API
+
+Versioned JSON endpoints are available under `/api/public/v1`.
+
+- `GET /api/public/v1/treaty` – return the current treaty text and articles.
+- `GET /api/public/v1/amendments` – list amendments with status and voting window.
+- `GET /api/public/v1/members` – list active member countries.
+
+All endpoints are rate limited to 60 requests per minute per IP.
+
 ## Getting Started
 
 First, run the development server:
