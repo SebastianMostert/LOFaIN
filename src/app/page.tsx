@@ -19,6 +19,22 @@ const P = ({ children }: { children: React.ReactNode }) => (
 export default function HomePage() {
   return (
     <>
+      {/* About */}
+      <section className="bg-stone-950">
+        <div className="mx-auto max-w-6xl px-4 py-12">
+          <h2 className={`${epunda.className} text-3xl font-extrabold text-stone-100`}>About the Treaty</h2>
+          <div className="mt-3 h-px w-28 bg-gradient-to-r from-stone-700 to-stone-400" />
+          <P>
+            The League of Free and Independent Nations is an alliance of sovereign states forged in 1872 to
+            safeguard mutual defence and prosperity.
+          </P>
+          <P>
+            This site preserves the treaty text and offers delegates a place to review articles, track
+            amendments, and record their votes.
+          </P>
+        </div>
+      </section>
+
       {/* Hero */}
       <section className="relative isolate overflow-hidden bg-stone-950">
         <div className="mx-auto max-w-6xl px-4 py-20 sm:py-28">
