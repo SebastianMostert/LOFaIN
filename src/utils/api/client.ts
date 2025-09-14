@@ -2,7 +2,7 @@
 
 import { cookies } from "next/headers";
 
-export function getBaseUrl() {
+export async function getBaseUrl() {
     // Prefer NEXTAUTH_URL (used by Auth.js), then public base, then dev default
     return (
         process.env.NEXTAUTH_URL ||
@@ -16,7 +16,7 @@ export async function apiPost<T>(
     body: unknown,
     opts?: { revalidate?: RequestCache }
 ): Promise<T> {
-    const res = await fetch(`${getBaseUrl()}${path}`, {
+    const res = await fetch(`${await getBaseUrl()}${path}`, {
         method: "POST",
         headers: {
             "Content-Type": "application/json",
