@@ -31,7 +31,7 @@ const FlagSignOutButton = ({ size, countryCode }: { size: number; countryCode: s
         type="submit"
       >
         <Image
-          src={"/flags/btn/" + countryCode + ".png"}
+          src={"/flags/btn/" + countryCode.toLocaleLowerCase() + ".png"}
           alt="USSR Flag"
           width={24 * size}
           height={16 * size}
