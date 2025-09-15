@@ -7,7 +7,7 @@ import type { Metadata } from "next";
 import NewAmendmentComposer from "@/components/NewAmendmentComposer";
 import { createAmendmentAction } from "@/utils/api/amendments";
 
-const baseUrl = "https://example.com";
+const baseUrl = process.env.NEXT_PUBLIC_BASE_URL;
 
 export const metadata: Metadata = {
   title: "Propose Amendment • League",

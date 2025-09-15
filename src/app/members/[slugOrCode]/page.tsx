@@ -5,7 +5,7 @@ import { getCountry } from "@/utils/country";
 import Image from "next/image";
 import type { Metadata } from "next";
 
-const baseUrl = "https://example.com";
+const baseUrl = process.env.NEXT_PUBLIC_BASE_URL;
 
 export async function generateMetadata({ params }: { params: Promise<{ slugOrCode: string }> }): Promise<Metadata> {
     const awaitedParams = await params;

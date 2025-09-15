@@ -7,7 +7,7 @@ import { auth } from "@/auth";
 import { getCountry } from "@/utils/country";
 import type { Metadata } from "next";
 
-const baseUrl = "https://example.com";
+const baseUrl = process.env.NEXT_PUBLIC_BASE_URL;
 
 export const metadata: Metadata = {
     title: "My Country • League",

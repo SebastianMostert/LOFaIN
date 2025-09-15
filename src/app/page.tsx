@@ -7,7 +7,7 @@ import { prisma } from "@/prisma";
 
 export const dynamic = "force-dynamic";
 
-const baseUrl = "https://example.com";
+const baseUrl = process.env.NEXT_PUBLIC_BASE_URL;
 
 export const metadata: Metadata = {
   title: "Home • League",

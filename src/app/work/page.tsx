@@ -1,7 +1,7 @@
 import { epunda } from "@/app/fonts";
 import type { Metadata } from "next";
 
-const baseUrl = "https://example.com";
+const baseUrl = process.env.NEXT_PUBLIC_BASE_URL;
 
 export const metadata: Metadata = {
   title: "Our Work • League",

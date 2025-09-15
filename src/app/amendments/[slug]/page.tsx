@@ -13,7 +13,7 @@ import { auth } from "@/auth";
 
 export const dynamic = "force-dynamic";
 
-const baseUrl = "https://example.com";
+const baseUrl = process.env.NEXT_PUBLIC_BASE_URL;
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
     const { slug } = await params;

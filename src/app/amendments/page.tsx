@@ -9,7 +9,7 @@ import AmendmentsClient from "../../components/AmendmentsClient";
 
 export const dynamic = "force-dynamic";
 
-const baseUrl = "https://example.com";
+const baseUrl = process.env.NEXT_PUBLIC_BASE_URL;
 
 export const metadata: Metadata = {
     title: "Amendments • League",

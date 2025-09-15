@@ -6,7 +6,7 @@ import TreatyClient from "./TreatyClient";
 export const dynamic = "force-static";
 export const revalidate = 3600;
 
-const baseUrl = "https://example.com";
+const baseUrl = process.env.NEXT_PUBLIC_BASE_URL;
 
 export const metadata: Metadata = {
     title: "Treaty • League",

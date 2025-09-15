@@ -6,7 +6,7 @@ import { auth } from "@/auth";
 import { prisma } from "@/prisma";
 import { CouncilSession } from "@/components/CouncilSession";
 
-const baseUrl = "https://example.com";
+const baseUrl = process.env.NEXT_PUBLIC_BASE_URL;
 
 export async function generateMetadata({
   params,
