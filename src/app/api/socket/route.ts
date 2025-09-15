@@ -44,7 +44,8 @@ export function GET(request: NextRequest) {
 
   const roomId = request.nextUrl.searchParams.get('room') ?? DEFAULT_ROOM_ID;
   const pair = new WebSocketPair();
-  const [client, server] = Object.values(pair) as [ServerWebSocket, ServerWebSocket];
+  const client = pair[0] as ServerWebSocket;
+  const server = pair[1] as ServerWebSocket;
 
   server.accept?.();
   registerConnection(roomId, server);

@@ -36,7 +36,7 @@ export function connectToPresenceSocket(
   url.protocol = url.protocol === 'https:' ? 'wss:' : 'ws:';
 
   const socket = new WebSocket(url);
-  let heartbeatTimer: ReturnType<typeof window.setInterval> | undefined;
+  let heartbeatTimer: number | null = null;
 
   const sendHeartbeat = () => {
     if (socket.readyState !== WebSocket.OPEN) {
@@ -83,18 +83,18 @@ export function connectToPresenceSocket(
   });
 
   socket.addEventListener('close', (event) => {
-    if (heartbeatTimer) {
+    if (heartbeatTimer !== null) {
       window.clearInterval(heartbeatTimer);
-      heartbeatTimer = undefined;
+      heartbeatTimer = null;
     }
 
     options.onClose?.(event);
   });
 
   const disconnect = () => {
-    if (heartbeatTimer) {
+    if (heartbeatTimer !== null) {
       window.clearInterval(heartbeatTimer);
-      heartbeatTimer = undefined;
+      heartbeatTimer = null;
     }
 
     if (socket.readyState === WebSocket.OPEN || socket.readyState === WebSocket.CONNECTING) {
