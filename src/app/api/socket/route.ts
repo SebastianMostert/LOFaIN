@@ -1,5 +1,20 @@
 import { NextRequest } from 'next/server';
 
+import {
+  type PresenceConnection,
+  type ServerWebSocket,
+  broadcastToRoom,
+  deleteConnection,
+  getOrCreateRoom,
+  listPresentCountryIds,
+  rooms,
+} from './state';
+import {
+  handleQueueRecognize,
+  handleQueueRequest,
+  handleQueueSkip,
+} from './queueActions';
+
 export const runtime = 'edge';
 
 type PresenceEvent = {
@@ -8,34 +23,18 @@ type PresenceEvent = {
 };
 
 type PresenceHeartbeatPayload = {
-  countryId: string;
+  countryId?: string;
+  threadId?: string;
 };
 
-type ServerWebSocket = WebSocket & {
-  accept?: () => void;
+type QueueEventPayload = {
+  threadId?: string;
+  countryId?: string;
 };
-
-type PresenceConnection = {
-  socket: ServerWebSocket;
-  countryId: string | null;
-  lastHeartbeat: number;
-  heartbeatTimer: ReturnType<typeof setInterval> | null;
-};
-
-type PresenceRoomState = Map<string, PresenceConnection>;
-
-type PresenceRoomsStore = Map<string, PresenceRoomState>;
 
 const HEARTBEAT_INTERVAL_MS = 5_000;
 const HEARTBEAT_TIMEOUT_MS = 15_000;
 const DEFAULT_ROOM_ID = 'presence';
-
-const globalPresence = globalThis as typeof globalThis & {
-  __presenceRoomsStore?: PresenceRoomsStore;
-};
-
-const rooms: PresenceRoomsStore =
-  globalPresence.__presenceRoomsStore ?? (globalPresence.__presenceRoomsStore = new Map());
 
 export function GET(request: NextRequest) {
   if (request.headers.get('upgrade') !== 'websocket') {
@@ -87,8 +86,21 @@ function registerConnection(roomId: string, socket: ServerWebSocket) {
       return;
     }
 
-    if (message.event === 'presence:heartbeat') {
-      handleHeartbeat(roomId, connectionId, connection, message.payload);
+    switch (message.event) {
+      case 'presence:heartbeat':
+        handleHeartbeat(roomId, connectionId, connection, message.payload);
+        break;
+      case 'queue:request':
+        handleQueueRequestMessage(roomId, connection, message.payload);
+        break;
+      case 'queue:recognize':
+        handleQueueRecognizeMessage(roomId, connection, message.payload);
+        break;
+      case 'queue:skip':
+        handleQueueSkipMessage(roomId, connection, message.payload);
+        break;
+      default:
+        break;
     }
   });
 
@@ -103,15 +115,11 @@ function registerConnection(roomId: string, socket: ServerWebSocket) {
     clearIntervalIfNeeded(connection.heartbeatTimer);
     connection.heartbeatTimer = null;
     const roomState = rooms.get(roomId);
-    if (!roomState) {
+    if (!roomState || !roomState.has(connectionId)) {
       return;
     }
 
-    roomState.delete(connectionId);
-    if (roomState.size === 0) {
-      rooms.delete(roomId);
-    }
-
+    deleteConnection(roomId, connectionId);
     broadcastPresence(roomId);
   };
 
@@ -125,16 +133,15 @@ function handleHeartbeat(
   connection: PresenceConnection,
   payload: unknown,
 ) {
-  if (!payload || typeof payload !== 'object' || !('countryId' in payload)) {
+  if (!payload || typeof payload !== 'object') {
     return;
   }
 
   const { countryId } = payload as PresenceHeartbeatPayload;
-  if (typeof countryId !== 'string' || countryId.length === 0) {
-    return;
+  if (typeof countryId === 'string' && countryId.trim().length > 0) {
+    connection.countryId = countryId.trim();
   }
 
-  connection.countryId = countryId;
   connection.lastHeartbeat = Date.now();
 
   const room = rooms.get(roomId);
@@ -145,48 +152,132 @@ function handleHeartbeat(
   broadcastPresence(roomId);
 }
 
-function broadcastPresence(roomId: string) {
-  const room = rooms.get(roomId);
-  if (!room) {
+function handleQueueRequestMessage(
+  roomId: string,
+  connection: PresenceConnection,
+  payload: unknown,
+) {
+  const { threadId, countryId } = parseQueuePayload(payload);
+  const resolvedThreadId = resolveThreadId(roomId, threadId);
+  const resolvedCountryId = resolveCountryId(connection, countryId);
+
+  if (!resolvedThreadId || !resolvedCountryId) {
     return;
   }
 
-  const countryIds = Array.from(
-    new Set(
-      Array.from(room.values())
-        .map((connection) => connection.countryId)
-        .filter((countryId): countryId is string => typeof countryId === 'string' && countryId.length > 0),
-    ),
-  );
+  try {
+    handleQueueRequest(resolvedThreadId, resolvedCountryId);
+  } catch (error) {
+    console.error('Failed to process queue request message.', error);
+  }
+}
 
-  const payload = JSON.stringify({
+function handleQueueRecognizeMessage(
+  roomId: string,
+  connection: PresenceConnection,
+  payload: unknown,
+) {
+  const { threadId, countryId } = parseQueuePayload(payload);
+  const resolvedThreadId = resolveThreadId(roomId, threadId);
+
+  if (!resolvedThreadId) {
+    return;
+  }
+
+  const targetCountry =
+    typeof countryId === 'string' && countryId.trim().length > 0
+      ? countryId.trim()
+      : connection.countryId ?? null;
+
+  try {
+    handleQueueRecognize(resolvedThreadId, targetCountry);
+  } catch (error) {
+    console.error('Failed to process queue recognize message.', error);
+  }
+}
+
+function handleQueueSkipMessage(
+  roomId: string,
+  connection: PresenceConnection,
+  payload: unknown,
+) {
+  const { threadId, countryId } = parseQueuePayload(payload);
+  const resolvedThreadId = resolveThreadId(roomId, threadId);
+
+  if (!resolvedThreadId) {
+    return;
+  }
+
+  const targetCountry =
+    typeof countryId === 'string' && countryId.trim().length > 0
+      ? countryId.trim()
+      : connection.countryId ?? null;
+
+  try {
+    handleQueueSkip(resolvedThreadId, targetCountry);
+  } catch (error) {
+    console.error('Failed to process queue skip message.', error);
+  }
+}
+
+function broadcastPresence(roomId: string) {
+  if (!rooms.has(roomId)) {
+    return;
+  }
+
+  const presentCountries = listPresentCountryIds(roomId);
+  const quorum = presentCountries.length;
+  const motionsSuspended = quorum < 3;
+
+  broadcastToRoom(roomId, {
     event: 'presence:update',
     payload: {
-      countryIds,
+      presentCountries,
+      countryIds: presentCountries,
+      presentCount: quorum,
+      quorum,
+      motionsSuspended,
     },
   });
-
-  for (const connection of room.values()) {
-    safeSend(connection.socket, payload);
-  }
 }
 
-function getOrCreateRoom(roomId: string): PresenceRoomState {
-  let room = rooms.get(roomId);
-  if (!room) {
-    room = new Map();
-    rooms.set(roomId, room);
+function parseQueuePayload(payload: unknown): QueueEventPayload {
+  if (!payload || typeof payload !== 'object') {
+    return {};
   }
 
-  return room;
+  const { threadId, countryId } = payload as QueueEventPayload;
+  return {
+    threadId: typeof threadId === 'string' ? threadId : undefined,
+    countryId: typeof countryId === 'string' ? countryId : undefined,
+  };
 }
 
-function safeSend(socket: ServerWebSocket, data: string) {
-  try {
-    socket.send(data);
-  } catch (error) {
-    console.error('Failed to send WebSocket message.', error);
+function resolveThreadId(roomId: string, rawThreadId?: string): string | null {
+  if (typeof rawThreadId === 'string' && rawThreadId.trim().length > 0) {
+    return rawThreadId.trim();
   }
+
+  if (roomId && roomId !== DEFAULT_ROOM_ID) {
+    return roomId;
+  }
+
+  return null;
+}
+
+function resolveCountryId(
+  connection: PresenceConnection,
+  rawCountryId?: string,
+): string | null {
+  if (typeof rawCountryId === 'string' && rawCountryId.trim().length > 0) {
+    return rawCountryId.trim();
+  }
+
+  if (typeof connection.countryId === 'string' && connection.countryId.length > 0) {
+    return connection.countryId;
+  }
+
+  return null;
 }
 
 function safeClose(socket: ServerWebSocket, code: number, reason: string) {
