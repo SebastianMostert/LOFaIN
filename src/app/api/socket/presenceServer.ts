@@ -1,4 +1,5 @@
-import { NextRequest } from 'next/server';
+import { Buffer } from 'buffer';
+import type { RawData } from 'next/dist/compiled/ws';
 
 import {
   type PresenceConnection,
@@ -15,7 +16,9 @@ import {
   handleQueueSkip,
 } from './queueActions';
 
-export const runtime = 'edge';
+export const HEARTBEAT_INTERVAL_MS = 5_000;
+export const HEARTBEAT_TIMEOUT_MS = 15_000;
+export const DEFAULT_ROOM_ID = 'presence';
 
 type PresenceEvent = {
   event: string;
@@ -32,27 +35,20 @@ type QueueEventPayload = {
   countryId?: string;
 };
 
-const HEARTBEAT_INTERVAL_MS = 5_000;
-const HEARTBEAT_TIMEOUT_MS = 15_000;
-const DEFAULT_ROOM_ID = 'presence';
+export function handlePresenceConnection(
+  socket: ServerWebSocket,
+  rawRoomId?: string | null,
+) {
+  const roomId = resolveRoomId(rawRoomId);
+  registerConnection(roomId, socket);
+}
 
-export function GET(request: NextRequest) {
-  if (request.headers.get('upgrade') !== 'websocket') {
-    return new Response('Expected WebSocket upgrade.', { status: 426 });
+function resolveRoomId(roomId?: string | null) {
+  if (typeof roomId === 'string' && roomId.trim().length > 0) {
+    return roomId.trim();
   }
 
-  const roomId = request.nextUrl.searchParams.get('room') ?? DEFAULT_ROOM_ID;
-  const pair = new WebSocketPair();
-  const client = pair[0] as ServerWebSocket;
-  const server = pair[1] as ServerWebSocket;
-
-  server.accept?.();
-  registerConnection(roomId, server);
-
-  return new Response(null, {
-    status: 101,
-    webSocket: client,
-  } as ResponseInit & { webSocket: ServerWebSocket });
+  return DEFAULT_ROOM_ID;
 }
 
 function registerConnection(roomId: string, socket: ServerWebSocket) {
@@ -76,12 +72,8 @@ function registerConnection(roomId: string, socket: ServerWebSocket) {
 
   connection.heartbeatTimer = heartbeatTimer;
 
-  socket.addEventListener('message', (event) => {
-    if (typeof event.data !== 'string') {
-      return;
-    }
-
-    const message = safeParseMessage(event.data);
+  attachMessageHandler(socket, (raw) => {
+    const message = safeParseMessage(raw);
     if (!message) {
       return;
     }
@@ -123,8 +115,83 @@ function registerConnection(roomId: string, socket: ServerWebSocket) {
     broadcastPresence(roomId);
   };
 
-  socket.addEventListener('close', cleanup);
-  socket.addEventListener('error', cleanup);
+  attachEventHandler(socket, 'close', cleanup);
+  attachEventHandler(socket, 'error', cleanup);
+}
+
+function attachEventHandler(
+  socket: ServerWebSocket,
+  event: 'close' | 'error',
+  handler: (...args: unknown[]) => void,
+) {
+  const candidate = socket as unknown as {
+    addEventListener?: (type: string, listener: (...args: unknown[]) => void) => void;
+    removeEventListener?: (type: string, listener: (...args: unknown[]) => void) => void;
+    on?: (type: string, listener: (...args: unknown[]) => void) => void;
+  };
+
+  if (typeof candidate.addEventListener === 'function') {
+    candidate.addEventListener(event, handler);
+    return;
+  }
+
+  if (typeof candidate.on === 'function') {
+    candidate.on(event, handler);
+  }
+}
+
+function attachMessageHandler(socket: ServerWebSocket, handler: (raw: string) => void) {
+  const candidate = socket as unknown as {
+    addEventListener?: (type: string, listener: (event: MessageEvent) => void) => void;
+    on?: (type: string, listener: (...args: unknown[]) => void) => void;
+  };
+
+  if (typeof candidate.addEventListener === 'function') {
+    candidate.addEventListener('message', (event: MessageEvent) => {
+      const raw = typeof event.data === 'string' ? event.data : null;
+      if (raw) {
+        handler(raw);
+      }
+    });
+    return;
+  }
+
+  if (typeof candidate.on === 'function') {
+    candidate.on('message', (data: RawData) => {
+      const normalized = normalizeRawData(data);
+      if (normalized) {
+        handler(normalized);
+      }
+    });
+  }
+}
+
+function normalizeRawData(data: RawData): string | null {
+  if (typeof data === 'string') {
+    return data;
+  }
+
+  if (data instanceof ArrayBuffer) {
+    return Buffer.from(data).toString('utf-8');
+  }
+
+  if (Array.isArray(data)) {
+    return Buffer.concat(
+      data.map((item) =>
+        item instanceof Buffer
+          ? item
+          : item instanceof ArrayBuffer
+            ? Buffer.from(item)
+            : Buffer.from(item as Uint8Array),
+      ),
+    ).toString('utf-8');
+  }
+
+  if (data instanceof Buffer) {
+    return data.toString('utf-8');
+  }
+
+  return null;
 }
 
 function handleHeartbeat(

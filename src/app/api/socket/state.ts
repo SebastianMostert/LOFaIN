@@ -1,4 +1,6 @@
-export type ServerWebSocket = WebSocket & {
+import type { WebSocket as NodeWebSocket } from 'next/dist/compiled/ws';
+
+export type ServerWebSocket = (WebSocket | NodeWebSocket) & {
   accept?: () => void;
 };
 
