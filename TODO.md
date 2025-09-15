@@ -12,3 +12,5 @@ Revamp the members page:
  - Show date joined
  - Show veto power
  - Show chair
+
+The websocket connection fails
