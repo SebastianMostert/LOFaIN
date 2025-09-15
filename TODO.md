@@ -5,3 +5,10 @@
 5. [DONE] Create Voting Frontend
 6. [TODO] Connect voting to treaty
 7. [TODO] Other
+
+Revamp the members page:
+ - Show flag
+ - Hide slug
+ - Show date joined
+ - Show veto power
+ - Show chair
