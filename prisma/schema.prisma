@@ -30,8 +30,16 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  Vote      Vote[]
-  Amendment Amendment[]
+  Vote          Vote[]
+  Amendment     Amendment[]
+  threads       DiscussionThread[]       @relation("ThreadCreatorUser")
+  posts         DiscussionPost[]         @relation("PostAuthorUser")
+  motions       ModMotion[]              @relation("MotionCreatedByUser")
+  modVotes      ModVote[]                @relation("ModVoteUser")
+  reactions     PostReaction[]           @relation("PostReactionUser")
+  sanctions     Sanction[]               @relation("SanctionIssuedByUser")
+  chairLogs     ChairActionLog[]         @relation("ChairActionActorUser")
+  subscriptions DiscussionSubscription[] @relation("ThreadSubscriptionUser")
 }
 
 model Country {
@@ -51,8 +59,18 @@ model Country {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  Vote      Vote[]
-  Amendment Amendment[]
+  Vote              Vote[]
+  Amendment         Amendment[]
+  threads           DiscussionThread[]       @relation("ThreadCreatorCountry")
+  posts             DiscussionPost[]         @relation("PostAuthorCountry")
+  motionsCreated    ModMotion[]              @relation("MotionCreatedByCountry")
+  motionsTargeted   ModMotion[]              @relation("MotionTargetCountry")
+  modVotes          ModVote[]                @relation("ModVoteCountry")
+  reactions         PostReaction[]           @relation("PostReactionCountry")
+  sanctionsIssued   Sanction[]               @relation("SanctionIssuedByCountry")
+  sanctionsReceived Sanction[]               @relation("SanctionTargetCountry")
+  chairLogs         ChairActionLog[]         @relation("ChairActionActorCountry")
+  subscriptions     DiscussionSubscription[] @relation("SubscriptionCountry")
 }
 
 model CountryMapping {
@@ -63,9 +81,9 @@ model CountryMapping {
 }
 
 model NotificationSetting {
-  id         String   @id @default(auto()) @map("_id") @db.ObjectId
-  userId     String   @unique @db.ObjectId
-  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id     String @id @default(auto()) @map("_id") @db.ObjectId
+  userId String @unique @db.ObjectId
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   inAppOnClose Boolean @default(true)
 
@@ -194,7 +212,7 @@ model Amendment {
   closesAt        DateTime?
   threshold       Float? // default 2/3 if null
   eligibleCount   Int? // frozen at OPEN time
-  quorum          Int? @default(0) // minimum votes required
+  quorum          Int?             @default(0) // minimum votes required
   votes           Vote[]
 
   treaty Treaty @relation(fields: [treatyId], references: [id], onDelete: Cascade)
@@ -233,4 +251,270 @@ model Vote {
   user      User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
 
   @@unique([amendmentId, countryId]) // one vote per country per amendment
+}
+
+enum ModMotionType {
+  LOCK_THREAD
+  UNLOCK_THREAD
+  PIN_THREAD
+  UNPIN_THREAD
+  ARCHIVE_THREAD
+  REMOVE_POST
+  RESTORE_POST
+  ISSUE_SANCTION
+  LIFT_SANCTION
+}
+
+enum ModMotionStatus {
+  DRAFT
+  PROPOSED
+  VOTING
+  PASSED
+  FAILED
+  WITHDRAWN
+  EXECUTED
+}
+
+enum ModVoteChoice {
+  APPROVE
+  REJECT
+  ABSTAIN
+}
+
+enum ReactionType {
+  ENDORSE
+  OPPOSE
+  QUESTION
+  FLAG
+  INFORMATIVE
+}
+
+enum SanctionType {
+  WARNING
+  REPRIMAND
+  SUSPENSION
+  EXPULSION
+  FINANCIAL_PENALTY
+  RIGHTS_RESTRICTION
+}
+
+enum ChairActionType {
+  LOG_NOTE
+  LOCK_THREAD
+  UNLOCK_THREAD
+  PIN_THREAD
+  UNPIN_THREAD
+  ARCHIVE_THREAD
+  RESTORE_POST
+  ISSUE_SANCTION
+  LIFT_SANCTION
+}
+
+model DiscussionThread {
+  id                 String    @id @default(auto()) @map("_id") @db.ObjectId
+  slug               String    @unique
+  title              String
+  summary            String?
+  isLocked           Boolean   @default(false)
+  isPinned           Boolean   @default(false)
+  isArchived         Boolean   @default(false)
+  lastPostAt         DateTime?
+  createdByUserId    String?   @db.ObjectId
+  createdByCountryId String?   @db.ObjectId
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  createdByUser    User?                    @relation("ThreadCreatorUser", fields: [createdByUserId], references: [id], onDelete: SetNull)
+  createdByCountry Country?                 @relation("ThreadCreatorCountry", fields: [createdByCountryId], references: [id], onDelete: SetNull)
+  posts            DiscussionPost[]
+  motions          ModMotion[]
+  subscriptions    DiscussionSubscription[]
+  chairActions     ChairActionLog[]
+
+  @@index([createdByCountryId])
+  @@index([createdByUserId])
+  @@index([isPinned, createdAt])
+  @@index([isArchived, createdAt])
+}
+
+model DiscussionPost {
+  id              String    @id @default(auto()) @map("_id") @db.ObjectId
+  threadId        String    @db.ObjectId
+  parentPostId    String?   @db.ObjectId
+  authorUserId    String?   @db.ObjectId
+  authorCountryId String?   @db.ObjectId
+  body            String
+  isEdited        Boolean   @default(false)
+  isDeleted       Boolean   @default(false)
+  deletedAt       DateTime?
+  editedAt        DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  thread        DiscussionThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  parent        DiscussionPost?  @relation("PostReplies", fields: [parentPostId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  replies       DiscussionPost[] @relation("PostReplies")
+  authorUser    User?            @relation("PostAuthorUser", fields: [authorUserId], references: [id], onDelete: SetNull)
+  authorCountry Country?         @relation("PostAuthorCountry", fields: [authorCountryId], references: [id], onDelete: SetNull)
+  reactions     PostReaction[]
+  motions       ModMotion[]      @relation("MotionPostTargets")
+  chairActions  ChairActionLog[] @relation("ChairActionPost")
+
+  @@index([threadId])
+  @@index([threadId, createdAt])
+  @@index([parentPostId])
+  @@index([authorCountryId])
+  @@index([authorUserId])
+}
+
+model ModMotion {
+  id                 String          @id @default(auto()) @map("_id") @db.ObjectId
+  type               ModMotionType
+  status             ModMotionStatus @default(DRAFT)
+  title              String
+  description        String?
+  rationale          String?
+  context            Json?
+  targetThreadId     String?         @db.ObjectId
+  targetPostId       String?         @db.ObjectId
+  targetCountryId    String?         @db.ObjectId
+  createdByUserId    String?         @db.ObjectId
+  createdByCountryId String?         @db.ObjectId
+  submittedAt        DateTime?
+  openedAt           DateTime?
+  closedAt           DateTime?
+  resolvedAt         DateTime?
+  resolutionNote     String?
+  createdAt          DateTime        @default(now())
+  updatedAt          DateTime        @updatedAt
+
+  targetThread     DiscussionThread? @relation(fields: [targetThreadId], references: [id], onDelete: SetNull)
+  targetPost       DiscussionPost?   @relation("MotionPostTargets", fields: [targetPostId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  targetCountry    Country?          @relation("MotionTargetCountry", fields: [targetCountryId], references: [id], onDelete: SetNull)
+  createdByUser    User?             @relation("MotionCreatedByUser", fields: [createdByUserId], references: [id], onDelete: SetNull)
+  createdByCountry Country?          @relation("MotionCreatedByCountry", fields: [createdByCountryId], references: [id], onDelete: SetNull)
+  votes            ModVote[]
+  sanctions        Sanction[]
+  chairActions     ChairActionLog[]
+
+  @@index([status])
+  @@index([type])
+  @@index([targetThreadId])
+  @@index([targetPostId])
+  @@index([targetCountryId])
+  @@index([createdByCountryId])
+  @@index([createdByUserId])
+}
+
+model ModVote {
+  id        String        @id @default(auto()) @map("_id") @db.ObjectId
+  motionId  String        @db.ObjectId
+  countryId String        @db.ObjectId
+  userId    String?       @db.ObjectId
+  choice    ModVoteChoice
+  comment   String?
+  createdAt DateTime      @default(now())
+
+  motion  ModMotion @relation(fields: [motionId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  country Country   @relation("ModVoteCountry", fields: [countryId], references: [id], onDelete: Cascade)
+  user    User?     @relation("ModVoteUser", fields: [userId], references: [id], onDelete: SetNull)
+
+  @@unique([motionId, countryId])
+  @@index([motionId])
+  @@index([countryId])
+  @@index([userId])
+}
+
+model PostReaction {
+  id        String       @id @default(auto()) @map("_id") @db.ObjectId
+  postId    String       @db.ObjectId
+  countryId String       @db.ObjectId
+  userId    String?      @db.ObjectId
+  type      ReactionType
+  note      String?
+  createdAt DateTime     @default(now())
+
+  post    DiscussionPost @relation(fields: [postId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  country Country        @relation("PostReactionCountry", fields: [countryId], references: [id], onDelete: Cascade)
+  user    User?          @relation("PostReactionUser", fields: [userId], references: [id], onDelete: SetNull)
+
+  @@unique([postId, countryId, type])
+  @@index([postId])
+  @@index([countryId])
+  @@index([userId])
+}
+
+model Sanction {
+  id                String       @id @default(auto()) @map("_id") @db.ObjectId
+  motionId          String?      @db.ObjectId
+  targetCountryId   String       @db.ObjectId
+  issuedByCountryId String?      @db.ObjectId
+  issuedByUserId    String?      @db.ObjectId
+  type              SanctionType
+  title             String
+  summary           String?
+  details           String?
+  isActive          Boolean      @default(true)
+  issuedAt          DateTime     @default(now())
+  effectiveAt       DateTime?
+  expiresAt         DateTime?
+  rescindedAt       DateTime?
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
+
+  motion          ModMotion?       @relation(fields: [motionId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  targetCountry   Country          @relation("SanctionTargetCountry", fields: [targetCountryId], references: [id], onDelete: Cascade)
+  issuedByCountry Country?         @relation("SanctionIssuedByCountry", fields: [issuedByCountryId], references: [id], onDelete: SetNull)
+  issuedByUser    User?            @relation("SanctionIssuedByUser", fields: [issuedByUserId], references: [id], onDelete: SetNull)
+  chairActions    ChairActionLog[]
+
+  @@index([motionId])
+  @@index([targetCountryId])
+  @@index([type])
+  @@index([isActive, targetCountryId])
+}
+
+model ChairActionLog {
+  id             String          @id @default(auto()) @map("_id") @db.ObjectId
+  type           ChairActionType
+  actorUserId    String?         @db.ObjectId
+  actorCountryId String?         @db.ObjectId
+  motionId       String?         @db.ObjectId
+  threadId       String?         @db.ObjectId
+  postId         String?         @db.ObjectId
+  sanctionId     String?         @db.ObjectId
+  note           String?
+  metadata       Json?
+  createdAt      DateTime        @default(now())
+
+  actorUser    User?             @relation("ChairActionActorUser", fields: [actorUserId], references: [id], onDelete: SetNull)
+  actorCountry Country?          @relation("ChairActionActorCountry", fields: [actorCountryId], references: [id], onDelete: SetNull)
+  motion       ModMotion?        @relation(fields: [motionId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  thread       DiscussionThread? @relation(fields: [threadId], references: [id], onDelete: SetNull)
+  post         DiscussionPost?   @relation("ChairActionPost", fields: [postId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  sanction     Sanction?         @relation(fields: [sanctionId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([type])
+  @@index([motionId])
+  @@index([threadId])
+  @@index([postId])
+  @@index([sanctionId])
+  @@index([actorCountryId])
+  @@index([actorUserId])
+}
+
+model DiscussionSubscription {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  threadId  String   @db.ObjectId
+  countryId String   @db.ObjectId
+  userId    String?  @db.ObjectId
+  createdAt DateTime @default(now())
+
+  thread  DiscussionThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  country Country          @relation("SubscriptionCountry", fields: [countryId], references: [id], onDelete: Cascade)
+  user    User?            @relation("ThreadSubscriptionUser", fields: [userId], references: [id], onDelete: SetNull)
+
+  @@unique([threadId, countryId])
+  @@index([threadId])
+  @@index([userId])
 }
