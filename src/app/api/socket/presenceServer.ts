@@ -143,7 +143,7 @@ function attachEventHandler(
 function attachMessageHandler(socket: ServerWebSocket, handler: (raw: string) => void) {
   const candidate = socket as unknown as {
     addEventListener?: (type: string, listener: (event: MessageEvent) => void) => void;
-    on?: (type: string, listener: (...args: unknown[]) => void) => void;
+    on?: (type: string, listener: (data: RawData, isBinary?: boolean) => void) => void;
   };
 
   if (typeof candidate.addEventListener === 'function') {
