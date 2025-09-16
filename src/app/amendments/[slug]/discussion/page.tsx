@@ -2,9 +2,9 @@ import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 
 import { epunda } from "@/app/fonts";
-import { auth } from "@/auth";
+// import { auth } from "@/auth";
 import { prisma } from "@/prisma";
-import { CouncilSession } from "@/components/CouncilSession";
+import { CouncilSessionUI } from "@/components/CouncilSession";
 
 const baseUrl = process.env.NEXT_PUBLIC_BASE_URL;
 
@@ -49,8 +49,8 @@ export default async function AmendmentDiscussionPage({
 }) {
   const { slug } = await params;
 
-  const session = await auth();
-  const currentCountryId = session?.user?.countryId ?? null;
+  // const session = await auth();
+  // const currentCountryId = session?.user?.countryId ?? null;
 
   const [amendment, discussionThread, countries] = await Promise.all([
     prisma.amendment.findUnique({
@@ -96,7 +96,7 @@ export default async function AmendmentDiscussionPage({
         )}
       </header>
 
-      <CouncilSession threadId={threadId} currentCountryId={currentCountryId} countries={countries} />
+      <CouncilSessionUI motionsSuspended connected presentCountries={[]} queuedCountries={[]} recognizedName={null} quorum={countries.length} statusMessage={"R"} statusTone="error" />
 
       <footer className="mt-8 text-xs text-stone-500">
         <p>

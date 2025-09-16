@@ -39,7 +39,7 @@ export async function POST(req: Request) {
         newHeading,
         newBody,
         newOrder,
-    } = await req.json();
+    } = parsed.data;
 
     if (!title) return NextResponse.json({ error: "Missing title" }, { status: 400 });
     if (!["ADD", "EDIT", "REMOVE"].includes(op)) return NextResponse.json({ error: "Invalid operation" }, { status: 400 });
