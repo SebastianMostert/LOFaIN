@@ -43,6 +43,42 @@ export default function SlideOutVoteTab({
         return () => document.removeEventListener("mousedown", onClick);
     }, [open]);
 
+    // Ensure the slide-out panel stays within the viewport when its content changes.
+    useEffect(() => {
+        if (!open) return;
+
+        const target = panelRef.current;
+        if (!(target instanceof HTMLElement)) {
+            return;
+        }
+
+        const previousMaxHeight = target.style.maxHeight;
+        const previousOverflowY = target.style.overflowY;
+
+        const updateBounds = () => {
+            const rect = target.getBoundingClientRect();
+            const availableHeight = Math.max(window.innerHeight - rect.top - 24, 0);
+            target.style.maxHeight = availableHeight ? `${availableHeight}px` : "";
+            target.style.overflowY = "auto";
+        };
+
+        updateBounds();
+
+        const observer = new MutationObserver(() => {
+            updateBounds();
+        });
+
+        observer.observe(target, { childList: true, subtree: true });
+        window.addEventListener("resize", updateBounds);
+
+        return () => {
+            observer.disconnect();
+            window.removeEventListener("resize", updateBounds);
+            target.style.maxHeight = previousMaxHeight;
+            target.style.overflowY = previousOverflowY;
+        };
+    }, [open]);
+
     if (status === "CLOSED") return null
 
     return (
