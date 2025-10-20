@@ -4,8 +4,9 @@ import { epunda } from "@/app/fonts";
 import { getCountry } from "@/utils/country";
 import Image from "next/image";
 import type { Metadata } from "next";
+import { getPublicBaseUrl } from "@/utils/baseUrl";
 
-const baseUrl = process.env.NEXT_PUBLIC_BASE_URL;
+const baseUrl = getPublicBaseUrl();
 
 export async function generateMetadata({ params }: { params: Promise<{ slugOrCode: string }> }): Promise<Metadata> {
     const awaitedParams = await params;

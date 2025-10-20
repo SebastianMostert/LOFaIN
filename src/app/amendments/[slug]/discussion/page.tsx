@@ -5,8 +5,9 @@ import { epunda } from "@/app/fonts";
 // import { auth } from "@/auth";
 import { prisma } from "@/prisma";
 import { CouncilSessionUI } from "@/components/CouncilSession";
+import { getPublicBaseUrl } from "@/utils/baseUrl";
 
-const baseUrl = process.env.NEXT_PUBLIC_BASE_URL;
+const baseUrl = getPublicBaseUrl();
 
 export async function generateMetadata({
   params,

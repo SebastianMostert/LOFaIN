@@ -6,10 +6,11 @@ import { redirect } from "next/navigation";
 
 import type { Metadata } from "next";
 import AmendmentsClient from "../../components/AmendmentsClient";
+import { getPublicBaseUrl } from "@/utils/baseUrl";
 
 export const dynamic = "force-dynamic";
 
-const baseUrl = process.env.NEXT_PUBLIC_BASE_URL;
+const baseUrl = getPublicBaseUrl();
 
 export const metadata: Metadata = {
     title: "Amendments • League",

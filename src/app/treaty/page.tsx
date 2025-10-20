@@ -2,11 +2,12 @@ import { prisma } from "@/prisma";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import TreatyClient from "./TreatyClient";
+import { getPublicBaseUrl } from "@/utils/baseUrl";
 
 export const dynamic = "force-static";
 export const revalidate = 3600;
 
-const baseUrl = process.env.NEXT_PUBLIC_BASE_URL;
+const baseUrl = getPublicBaseUrl();
 
 export const metadata: Metadata = {
     title: "Treaty • League",

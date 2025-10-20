@@ -4,10 +4,11 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { epunda } from "@/app/fonts";
 import { prisma } from "@/prisma";
+import { getPublicBaseUrl } from "@/utils/baseUrl";
 
 export const dynamic = "force-dynamic";
 
-const baseUrl = process.env.NEXT_PUBLIC_BASE_URL;
+const baseUrl = getPublicBaseUrl();
 
 export const metadata: Metadata = {
   title: "Home • League",

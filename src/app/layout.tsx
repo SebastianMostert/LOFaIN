@@ -9,8 +9,12 @@ import Header from "../components/Header";
 // Use a serif font for an early-1900s feel
 import { epunda } from "@/app/fonts"; // <-- local font helper
 import Footer from "../components/Footer";
+import { getPublicBaseUrl } from "@/utils/baseUrl";
+
+const baseUrl = getPublicBaseUrl();
 
 export const metadata: Metadata = {
+  metadataBase: new URL(baseUrl),
   title: {
     default: "League Treaty Portal",
     template: "%s • League Treaty Portal",
@@ -29,7 +33,7 @@ export const metadata: Metadata = {
     title: "League Treaty Portal",
     description:
       "The Treaty of the League of Free and Independent Nations, established in 1900 as a collective defense pact.",
-    url: "https://example.com",
+    url: baseUrl,
     siteName: "League Treaty Portal",
     locale: "en_US",
     type: "website",

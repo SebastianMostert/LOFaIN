@@ -1,14 +1,10 @@
 "use server";
 
 import { cookies } from "next/headers";
+import { getServerBaseUrl } from "@/utils/baseUrl";
 
 export async function getBaseUrl() {
-    // Prefer NEXTAUTH_URL (used by Auth.js), then public base, then dev default
-    return (
-        process.env.NEXTAUTH_URL ||
-        process.env.NEXT_PUBLIC_BASE_URL ||
-        "http://localhost:3000"
-    );
+    return getServerBaseUrl();
 }
 
 export async function apiPost<T>(

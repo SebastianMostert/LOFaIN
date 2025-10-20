@@ -1,7 +1,8 @@
 import { epunda } from "@/app/fonts";
 import type { Metadata } from "next";
+import { getPublicBaseUrl } from "@/utils/baseUrl";
 
-const baseUrl = process.env.NEXT_PUBLIC_BASE_URL;
+const baseUrl = getPublicBaseUrl();
 
 export const metadata: Metadata = {
   title: "Our Work • League",

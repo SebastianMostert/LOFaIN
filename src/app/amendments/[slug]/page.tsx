@@ -10,10 +10,11 @@ import StatusBanner from "@/components/Amendment/StatusBanner";
 import VoteMeter from "@/components/Amendment/VoteMeter";
 import VoteSummary from "@/components/Amendment/VoteSummary";
 import { auth } from "@/auth";
+import { getPublicBaseUrl } from "@/utils/baseUrl";
 
 export const dynamic = "force-dynamic";
 
-const baseUrl = process.env.NEXT_PUBLIC_BASE_URL;
+const baseUrl = getPublicBaseUrl();
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
     const { slug } = await params;
