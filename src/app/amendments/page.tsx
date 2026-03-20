@@ -1,7 +1,7 @@
 // app/amendments/page.tsx
 import { prisma } from "@/prisma";
 import { closeExpiredAmendments } from "@/utils/amendments";
-import { auth } from "@/auth";
+import { auth, getSignInPath } from "@/auth";
 import { redirect } from "next/navigation";
 
 import type { Metadata } from "next";
@@ -26,7 +26,7 @@ export const metadata: Metadata = {
 
 export default async function AmendmentsPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>>; }) {
     const session = await auth();
-    if (!session) redirect("/api/auth/signin?callbackUrl=/amendments");
+    if (!session) redirect(getSignInPath("/amendments"));
 
     await closeExpiredAmendments();
 

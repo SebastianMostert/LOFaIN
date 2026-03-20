@@ -52,7 +52,7 @@ export default function VoteCard({ slug, status, myVote }: { slug: string; statu
                 type="button"
                 onClick={() => vote(value)}
                 disabled={!canVote || isSubmitting}
-                className={`w-full rounded-md border px-4 py-3 text-lg font-semibold shadow-sm transition
+                className={`w-full rounded-xl border px-4 py-3 text-lg font-semibold shadow-sm transition
           ${active ? `${bg} text-white border-stone-900` : `bg-stone-100 text-stone-900 ${outline}`}
           ${!canVote ? "opacity-60 cursor-not-allowed" : "hover:brightness-95"}
         `}
@@ -63,7 +63,7 @@ export default function VoteCard({ slug, status, myVote }: { slug: string; statu
     };
 
     return (
-        <div className="rounded-lg border-2 border-stone-900 bg-stone-100 p-4 shadow-[0_2px_0_rgba(0,0,0,1)]">
+        <div className="rounded-2xl border-2 border-stone-900 bg-stone-100 p-4 shadow-[0_2px_0_rgba(0,0,0,1)]">
             <div className="mb-3 text-center">
                 <div className="text-xs uppercase tracking-wide text-stone-600">
                     {canVote ? "Cast your vote" : "Voting closed"}

@@ -13,16 +13,17 @@ model User {
   id            String          @id @default(auto()) @map("_id") @db.ObjectId
   name          String?
   email         String?         @unique
-  emailVerified DateTime?
+  emailVerifiedBool Boolean      @default(false)
   image         String?
   accounts      Account[]
   sessions      Session[]
   Authenticator Authenticator[]
-  discord       Json
 
   // Current assigned country
-  countryId String?  @db.ObjectId
-  country   Country? @relation(fields: [countryId], references: [id])
+  countryId       String?  @db.ObjectId
+  country         Country? @relation(fields: [countryId], references: [id])
+  discordId       String?
+  discordUsername String?
 
   // Notification preferences
   notificationSetting NotificationSetting?
@@ -99,10 +100,13 @@ model Account {
   providerAccountId String
   refresh_token     String? @db.String
   access_token      String? @db.String
+  refreshTokenExpiresAt DateTime?
+  accessTokenExpiresAt  DateTime?
   expires_at        Int?
   token_type        String?
   scope             String?
   id_token          String? @db.String
+  password          String?
   session_state     String?
 
   createdAt DateTime @default(now())
@@ -118,6 +122,8 @@ model Session {
   sessionToken String   @unique
   userId       String   @db.ObjectId
   expires      DateTime
+  ipAddress    String?
+  userAgent    String?
   user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   createdAt DateTime @default(now())
@@ -129,6 +135,8 @@ model VerificationToken {
   identifier String
   token      String
   expires    DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 
   @@unique([identifier, token])
 }

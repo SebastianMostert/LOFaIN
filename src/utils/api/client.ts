@@ -3,8 +3,9 @@
 import { cookies } from "next/headers";
 
 export async function getBaseUrl() {
-    // Prefer NEXTAUTH_URL (used by Auth.js), then public base, then dev default
+    // Prefer Better Auth base URL, then legacy auth/public base, then dev default
     return (
+        process.env.BETTER_AUTH_URL ||
         process.env.NEXTAUTH_URL ||
         process.env.NEXT_PUBLIC_BASE_URL ||
         "http://localhost:3000"

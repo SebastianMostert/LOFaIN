@@ -1,7 +1,7 @@
 // lib/amendments.ts — server actions & API helpers for amendments
 "use server";
 
-import { auth } from "@/auth";
+import { auth, getSignInPath } from "@/auth";
 import { redirect } from "next/navigation";
 import { apiPost } from "./client";
 import { amendmentSchema } from "../zodSchema";
@@ -22,7 +22,7 @@ export async function castVote(
     comment?: string
 ) {
     const session = await auth();
-    if (!session) redirect(`/api/auth/signin?callbackUrl=/amendments/${slug}`);
+    if (!session) redirect(getSignInPath(`/amendments/${slug}`));
 
     await apiPost(`/api/amendments/${encodeURIComponent(slug)}/vote`, {
         choice,
@@ -36,7 +36,7 @@ export async function castVote(
  */
 export async function createAmendmentAction(formData: FormData) {
     const session = await auth();
-    if (!session) redirect("/api/auth/signin?callbackUrl=/amendments/new");
+    if (!session) redirect(getSignInPath("/amendments/new"));
 
     // Whitelisted fields only
     const payload = {

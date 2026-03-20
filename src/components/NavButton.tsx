@@ -10,7 +10,7 @@ export default function NavButton({ href, label }: { href: string; label: string
     return (
         <Link
             href={href}
-            className={"px-6 py-2 rounded-sm text-white text-lg tracking-wide uppercase transition-transform active:translate-y-0.5 focus:outline-none"}
+            className="rounded-full px-4 py-2 text-sm font-semibold uppercase tracking-[0.2em] text-white transition-transform active:translate-y-0.5"
             style={{
                 background: active
                     ? "linear-gradient(180deg, #0f5f8c 0%, #0b4b70 100%)"

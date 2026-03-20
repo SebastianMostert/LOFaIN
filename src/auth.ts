@@ -1,142 +1,196 @@
-import NextAuth, { type DefaultSession } from "next-auth"
-import { PrismaAdapter } from "@auth/prisma-adapter"
-import { prisma } from "@/prisma"
-import Discord from "next-auth/providers/discord"
+import { headers } from "next/headers";
+import { betterAuth, type BetterAuthOptions } from "better-auth";
+import { prismaAdapter } from "better-auth/adapters/prisma";
+import { nextCookies } from "better-auth/next-js";
+import { customSession } from "better-auth/plugins";
+import { prisma } from "@/prisma";
 
-declare module "next-auth" {
-  interface User {
-    id?: string;
-    name?: string | null;
-    email?: string | null;
-    image?: string | null;
-
-    countryId?: string | null;
-    country?: {
-      id: string;
-      name: string;
-      slug: string;
-      code: string | null;
-      colorHex: string | null;
-    } | null;
-
-    // NEW: Discord payload you attach in the provider profile()
-    discord?: {
-      id: string;        // Discord user id (string)
-      username: string;  // Discord username (not display name)
-    };
-  }
-
-  interface Session {
-    user: DefaultSession["user"] & {
-      id?: string;
-      countryId?: string | null;
-      country?: {
-        id: string;
-        name: string;
-        slug: string;
-        code: string | null;
-        colorHex: string | null;
-      } | null;
-
-      // NEW: surface the same discord data on the session
-      discord?: {
-        id: string;
-        username: string;
-      };
-    };
-  }
+export interface SessionUser {
+  id: string;
+  name: string;
+  email: string;
+  image?: string | null;
+  emailVerified: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+  countryId?: string | null;
+  country?: {
+    id: string;
+    name: string;
+    slug: string;
+    code: string | null;
+    colorHex: string | null;
+  } | null;
+  discord?: {
+    id: string;
+    username: string;
+  };
 }
 
+export interface Session {
+  session: {
+    id: string;
+    token: string;
+    userId: string;
+    expiresAt: Date;
+    createdAt: Date;
+    updatedAt: Date;
+    ipAddress?: string | null;
+    userAgent?: string | null;
+  };
+  user: SessionUser;
+}
 
-export const { handlers, auth, signIn, signOut } = NextAuth({
-  adapter: PrismaAdapter(prisma),
-  providers: [
-    Discord({
-      async profile(profile) {
+const baseAuthOptions = {
+  appName: "League of Free & Independent Nations",
+  baseURL:
+    process.env.BETTER_AUTH_URL ||
+    process.env.NEXTAUTH_URL ||
+    process.env.NEXT_PUBLIC_BASE_URL,
+  database: prismaAdapter(prisma, {
+    provider: "mongodb",
+  }),
+  advanced: {
+    database: {
+      generateId: false,
+    },
+  },
+  socialProviders: {
+    discord: {
+      clientId: process.env.DISCORD_CLIENT_ID as string,
+      clientSecret: process.env.DISCORD_CLIENT_SECRET as string,
+      mapProfileToUser(profile) {
         return {
-          id: profile.id,
-          name: profile.global_name || profile.username, // prefer global_name if set
-          email: profile.email,
-          discord: {
-            id: profile.id,
-            username: profile.username,
-          },
+          name: profile.global_name || profile.username,
           image: profile.avatar
             ? `https://cdn.discordapp.com/avatars/${profile.id}/${profile.avatar}.png`
-            : null,
-        }
+            : undefined,
+          discordId: profile.id,
+          discordUsername: profile.username,
+        };
       },
-    })
-  ],
-  callbacks: {
-    /**
-     * Auto-assign user's country based on CountryMapping.discordId
-     */
-    async signIn({ account }) {
-      if (account?.provider === "discord") {
-        const discordId = account.providerAccountId;
+    },
+  },
+  user: {
+    modelName: "User",
+    fields: {
+      emailVerified: "emailVerifiedBool",
+    },
+    additionalFields: {
+      countryId: {
+        type: "string",
+        required: false,
+        input: false,
+      },
+      discordId: {
+        type: "string",
+        required: false,
+        input: false,
+      },
+      discordUsername: {
+        type: "string",
+        required: false,
+        input: false,
+      },
+    },
+  },
+  session: {
+    modelName: "Session",
+    fields: {
+      token: "sessionToken",
+      expiresAt: "expires",
+    },
+    cookieCache: {
+      enabled: true,
+      maxAge: 60 * 5,
+    },
+  },
+  account: {
+    modelName: "Account",
+    fields: {
+      accountId: "providerAccountId",
+      providerId: "provider",
+      accessToken: "access_token",
+      refreshToken: "refresh_token",
+      idToken: "id_token",
+    },
+  },
+  verification: {
+    modelName: "VerificationToken",
+    fields: {
+      value: "token",
+      expiresAt: "expires",
+    },
+  },
+} satisfies BetterAuthOptions;
 
-        // 1) Resolve the DB user id via Account table (this gives ObjectId)
-        const dbAccount = await prisma.account.findUnique({
-          where: {
-            provider_providerAccountId: {
-              provider: "discord",
-              providerAccountId: discordId,
-            },
-          },
-          select: { userId: true },
-        });
+export const authInstance = betterAuth({
+  ...baseAuthOptions,
+  plugins: [
+    customSession(async ({ user, session }: any) => {
+      let countryId = user.countryId ?? null;
 
-        
-        if (!dbAccount?.userId) {
-          // Nothing to do (new user still being created or mismatch)
-          return true;
-        }
-
-        // 2) Optional: fetch current user to compare (avoid unnecessary writes)
-        const dbUser = await prisma.user.findUnique({
-          where: { id: dbAccount.userId },
-          select: { id: true, countryId: true },
-        });
-
-        // 3) Find mapping for this Discord ID
+      if (user.discordId) {
         const mapping = await prisma.countryMapping.findUnique({
-          where: { discordId },
+          where: { discordId: user.discordId },
           select: { countryId: true },
         });
 
-        if (mapping && dbUser && dbUser.countryId !== mapping.countryId) {
+        const mappedCountryId = mapping?.countryId ?? null;
+        if (mappedCountryId !== countryId) {
           await prisma.user.update({
-            where: { id: dbUser.id }, // << ObjectId-safe
-            data: { countryId: mapping.countryId },
+            where: { id: user.id },
+            data: { countryId: mappedCountryId },
           });
+          countryId = mappedCountryId;
         }
       }
-      return true;
-    },
 
-    /**
-     * Put country on session (unchanged logic, but safe).
-     */
-    async session({ session, user }) {
-      const sessionUser = session.user;
-      // 'user.id' here is from adapter; at this point it is the DB user (ObjectId string)
-      sessionUser.countryId = user.countryId ?? null;
+      const country = countryId
+        ? await prisma.country.findUnique({
+            where: { id: countryId },
+            select: {
+              id: true,
+              name: true,
+              slug: true,
+              code: true,
+              colorHex: true,
+            },
+          })
+        : null;
 
-      if (user.countryId) {
-        const country = await prisma.country.findUnique({
-          where: { id: user.countryId },
-          select: { id: true, name: true, slug: true, code: true, colorHex: true },
-        });
-        sessionUser.country = country ?? null;
-      } else {
-        sessionUser.country = null;
-      }
-      return session;
-    },
-  },
-
-  session: {
-    strategy: "database",
-  },
+      return {
+        session,
+        user: {
+          ...user,
+          countryId,
+          country,
+          discord: user.discordId
+            ? {
+                id: user.discordId,
+                username: user.discordUsername ?? "",
+              }
+            : undefined,
+        },
+      };
+    }, baseAuthOptions),
+    nextCookies(),
+  ],
 });
+
+export async function auth() {
+  const session = await authInstance.api.getSession({
+    headers: await headers(),
+  });
+  return session as Session | null;
+}
+
+export async function signOut() {
+  return authInstance.api.signOut({
+    headers: await headers(),
+  });
+}
+
+export function getSignInPath(callbackUrl: string) {
+  return `/sign-in?callbackUrl=${encodeURIComponent(callbackUrl)}`;
+}

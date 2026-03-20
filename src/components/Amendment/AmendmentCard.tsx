@@ -1,121 +1,120 @@
-import { AmendmentResult, AmendmentStatus } from '@prisma/client';
-import Link from 'next/link';
-import React from 'react'
-import MiniVoteMeter from './MiniVoteMeter';
-import { epunda } from '@/app/fonts';
-import { clampPct, pct } from '@/utils/voteStats';
+import Link from "next/link";
+import { AmendmentResult, AmendmentStatus } from "@prisma/client";
+import { epunda } from "@/app/fonts";
+import MiniVoteMeter from "./MiniVoteMeter";
+import { clampPct, pct } from "@/utils/voteStats";
+import { formatDateTime, formatDeadline } from "@/utils/formatting";
 
-type ExtendedAmendment = {
-    result: AmendmentResult | null;
-    id: string;
-    slug: string;
-    title: string;
-    status: AmendmentStatus;
-    opensAt: Date | null;
-    closesAt: Date | null;
-    eligibleCount: number | null;
-    votes: {
-        choice: Choice;
-    }[];
-}
 type Choice = "AYE" | "NAY" | "ABSTAIN" | "ABSENT";
 
-const hasOpened = (opensAt: Date) => new Date() >= opensAt;
-const hasClosed = (closesAt: Date) => new Date() >= closesAt;
+type ExtendedAmendment = {
+  result: AmendmentResult | null;
+  id: string;
+  slug: string;
+  title: string;
+  status: AmendmentStatus;
+  opensAt: Date | null;
+  closesAt: Date | null;
+  eligibleCount: number | null;
+  votes: {
+    choice: Choice;
+  }[];
+};
 
-const AmendmentCard = ({ amendment, counts, eligible, highlight }: { amendment: ExtendedAmendment, counts: Record<Exclude<Choice, "ABSENT">, number>, eligible: number, highlight?: (s: string) => React.ReactNode }) => {
-    const totalVotes = counts.AYE + counts.NAY + counts.ABSTAIN;
-    const absent = Math.max(0, eligible - totalVotes);
+export default function AmendmentCard({
+  amendment,
+  counts,
+  eligible,
+  highlight,
+}: {
+  amendment: ExtendedAmendment;
+  counts: Record<Exclude<Choice, "ABSENT">, number>;
+  eligible: number;
+  highlight?: (s: string) => React.ReactNode;
+}) {
+  const totalVotes = counts.AYE + counts.NAY + counts.ABSTAIN;
+  const absent = Math.max(0, eligible - totalVotes);
 
-    const ayePct = pct(counts.AYE, eligible);
-    const nayPct = pct(counts.NAY, eligible);
-    const neutralPct = pct(counts.ABSTAIN + absent, eligible); // abstain + absent sit left of NAY
+  const ayePct = pct(counts.AYE, eligible);
+  const nayPct = pct(counts.NAY, eligible);
+  const neutralPct = pct(counts.ABSTAIN + absent, eligible);
 
-    const thresholdCount = Math.ceil((2 / 3) * eligible);
-    const thresholdPct = clampPct((2 / 3) * 100);
+  const thresholdCount = Math.ceil((2 / 3) * eligible);
+  const thresholdPct = clampPct((2 / 3) * 100);
+  const deadlineText = amendment.status === "OPEN" ? formatDeadline(amendment.closesAt) : formatDeadline(amendment.closesAt);
 
-    return (
-        <Link
-            key={amendment.id}
-            href={`/amendments/${amendment.slug}`}
-            className="group rounded-lg border border-stone-700/80 bg-stone-900 p-5 shadow-sm transition hover:border-stone-600 hover:bg-stone-850/80 hover:shadow-md"
-        >
-            {/* Header row: badge + title */}
-            <div className="flex items-start justify-between gap-3">
-                <StatusBadge status={amendment.status} result={amendment.result} />
-                {(amendment.opensAt || amendment.closesAt) && (
-                    <div className="text-right text-[11px] leading-4 text-stone-400">
-                        {amendment.opensAt && <div>Open{hasOpened(amendment.opensAt) ? "ed" : "s"}: {new Date(amendment.opensAt).toLocaleString()}</div>}
-                        {amendment.closesAt && <div>Close{hasClosed(amendment.closesAt) ? "d" : "s"}: {new Date(amendment.closesAt).toLocaleString()}</div>}
-                    </div>
-                )}
-            </div>
+  return (
+    <Link
+      href={`/amendments/${amendment.slug}`}
+      className="group rounded-2xl border border-stone-700/80 bg-stone-900 p-5 shadow-sm transition hover:border-stone-500 hover:bg-stone-900/95 hover:shadow-md"
+    >
+      <div className="flex items-start justify-between gap-3">
+        <StatusBadge status={amendment.status} result={amendment.result} />
+        <div className="text-right text-xs leading-5 text-stone-300">
+          {amendment.closesAt && <div className="font-semibold text-amber-200">{deadlineText}</div>}
+          {amendment.opensAt && <div>Opened: {formatDateTime(amendment.opensAt)}</div>}
+          {amendment.closesAt && <div>Closes: {formatDateTime(amendment.closesAt)}</div>}
+        </div>
+      </div>
 
-            <h2 className={`${epunda.className} mt-1 text-lg font-semibold text-stone-100`}>
-                {highlight ? highlight(amendment.title) : amendment.title}
-            </h2>
+      <h2 className={`${epunda.className} mt-3 text-xl font-semibold text-stone-100`}>
+        {highlight ? highlight(amendment.title) : amendment.title}
+      </h2>
 
-            {/* Meter */}
-            <div className="mt-4">
-                <MiniVoteMeter
-                    ayePct={ayePct}
-                    neutralPct={neutralPct}
-                    nayPct={nayPct}
-                    thresholdPct={thresholdPct}
-                    closed={amendment.status !== "OPEN"}
-                    result={amendment.result}
-                />
+      <div className="mt-4">
+        <MiniVoteMeter
+          ayePct={ayePct}
+          neutralPct={neutralPct}
+          nayPct={nayPct}
+          thresholdPct={thresholdPct}
+          closed={amendment.status !== "OPEN"}
+          result={amendment.result}
+        />
 
-                {/* Counts / threshold line */}
-                <div className="mt-2 flex items-center justify-between text-xs text-stone-400">
-                    <span>
-                        Aye {counts.AYE} • Nay {counts.NAY} • Abstain {counts.ABSTAIN} • Absent {absent}
-                    </span>
-                    <span>
-                        {thresholdCount} / {eligible} needed
-                    </span>
-                </div>
-            </div>
-        </Link>
-    );
+        <div className="mt-3 flex flex-wrap items-center justify-between gap-2 text-xs text-stone-300">
+          <span>
+            Aye {counts.AYE} | Nay {counts.NAY} | Abstain {counts.ABSTAIN} | Absent {absent}
+          </span>
+          <span>
+            {thresholdCount} / {eligible} needed
+          </span>
+        </div>
+      </div>
+    </Link>
+  );
 }
-
-
-/* ---------- UI bits ---------- */
 
 function StatusBadge({
-    status,
-    result,
+  status,
+  result,
 }: {
-    status: string;
-    result: string | null;
+  status: string;
+  result: string | null;
 }) {
-    if (status === "OPEN") {
-        return (
-            <span className="inline-flex items-center gap-1 rounded-full border border-blue-700/60 bg-blue-900/40 px-2.5 py-1 text-[11px] font-medium text-blue-200">
-                <span aria-hidden>●</span> Voting open
-            </span>
-        );
-    }
-    if (result === "PASSED") {
-        return (
-            <span className="inline-flex items-center gap-1 rounded-full border border-emerald-700/70 bg-emerald-900/40 px-2.5 py-1 text-[11px] font-medium text-emerald-200">
-                ✓ Passed
-            </span>
-        );
-    }
-    if (result === "FAILED") {
-        return (
-            <span className="inline-flex items-center gap-1 rounded-full border border-rose-700/70 bg-rose-900/40 px-2.5 py-1 text-[11px] font-medium text-rose-200">
-                ✗ Failed
-            </span>
-        );
-    }
+  if (status === "OPEN") {
     return (
-        <span className="inline-flex items-center gap-1 rounded-full border border-stone-600/70 bg-stone-800/60 px-2.5 py-1 text-[11px] font-medium text-stone-200">
-            Archived
-        </span>
+      <span className="inline-flex items-center gap-1 rounded-full border border-blue-700/60 bg-blue-900/40 px-2.5 py-1 text-[11px] font-medium text-blue-200">
+        <span aria-hidden>*</span> Voting open
+      </span>
     );
+  }
+  if (result === "PASSED") {
+    return (
+      <span className="inline-flex items-center gap-1 rounded-full border border-emerald-700/70 bg-emerald-900/40 px-2.5 py-1 text-[11px] font-medium text-emerald-200">
+        Passed
+      </span>
+    );
+  }
+  if (result === "FAILED") {
+    return (
+      <span className="inline-flex items-center gap-1 rounded-full border border-rose-700/70 bg-rose-900/40 px-2.5 py-1 text-[11px] font-medium text-rose-200">
+        Failed
+      </span>
+    );
+  }
+  return (
+    <span className="inline-flex items-center gap-1 rounded-full border border-stone-600/70 bg-stone-800/60 px-2.5 py-1 text-[11px] font-medium text-stone-200">
+      Archived
+    </span>
+  );
 }
-
-export default AmendmentCard

@@ -2,7 +2,7 @@
 import { prisma } from "@/prisma";
 import { epunda } from "@/app/fonts";
 import { redirect } from "next/navigation";
-import { auth } from "@/auth";
+import { auth, getSignInPath } from "@/auth";
 import type { Metadata } from "next";
 import NewAmendmentComposer from "@/components/NewAmendmentComposer";
 import { createAmendmentAction } from "@/utils/api/amendments";
@@ -24,7 +24,7 @@ export const metadata: Metadata = {
 
 export default async function NewAmendmentPage() {
   const session = await auth();
-  if (!session) redirect("/api/auth/signin?callbackUrl=/amendments/new");
+  if (!session) redirect(getSignInPath("/amendments/new"));
 
   const treaty = await prisma.treaty.findUnique({
     where: { slug: "league-treaty-1900" },

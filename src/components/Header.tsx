@@ -1,8 +1,9 @@
 import Link from "next/link";
 import Image from "next/image";
-import { auth, signIn, signOut } from "@/auth";
+import { auth, signOut } from "@/auth";
 import { prisma } from "@/prisma";
 import NavButton from "./NavButton";
+import SignInButton from "./SignInButton";
 
 const LogoPart = ({ size }: { size: number }) => {
   return (
@@ -20,19 +21,17 @@ const LogoPart = ({ size }: { size: number }) => {
   );
 };
 
-const FlagSignOutButton = ({ size, countryCode }: { size: number; countryCode: string; }) => {
+const FlagSignOutButton = ({ size, countryCode }: { size: number; countryCode: string }) => {
   return (
     <form
       action={async () => {
-        "use server"
-        await signOut()
+        "use server";
+        await signOut();
       }}
     >
-      <button
-        type="submit"
-      >
+      <button type="submit">
         <Image
-          src={"/flags/btn/" + countryCode.toLocaleLowerCase() + ".png"}
+          src={`/flags/btn/${countryCode.toLocaleLowerCase()}.png`}
           alt="Country Flag"
           width={24 * size}
           height={16 * size}
@@ -41,12 +40,12 @@ const FlagSignOutButton = ({ size, countryCode }: { size: number; countryCode: s
       </button>
     </form>
   );
-}
+};
 
 type LinkItem = {
   href: string;
   label: string;
-  auth: boolean; // true = requires login
+  auth: boolean;
 };
 
 const Links: LinkItem[] = [
@@ -91,42 +90,21 @@ export default async function Header() {
         </Link>
       )}
       <div className="mx-auto flex max-w-8xl items-center justify-between px-6 py-3">
-        {/* Left: Logo */}
         <LogoPart size={200} />
 
-        {/* Right: Navigation */}
         <nav className="flex items-center gap-4">
           {Links.filter((link) => {
-            if (link.auth && !user) return false; // requires auth but not logged in
+            if (link.auth && !user) return false;
             return true;
-          }).map((link, i) => {
-            const t = link.href === "/logout";
-            return t ? (
-              <FlagSignOutButton key={i} size={3.5} countryCode={countryCode} />
+          }).map((link, index) => {
+            const isLogout = link.href === "/logout";
+            return isLogout ? (
+              <FlagSignOutButton key={index} size={3.5} countryCode={countryCode} />
             ) : (
-              <NavButton key={i} href={link.href} label={link.label} />
-            )
+              <NavButton key={index} href={link.href} label={link.label} />
+            );
           })}
-          {!user && (
-            <form
-              method="post"
-              action={async () => {
-                "use server"
-                await signIn("discord")
-              }}
-            >
-              <button
-                type="submit"
-                className={"px-6 py-2 rounded-sm text-white text-lg bg-[#6e2e2e] hover:bg-[#823a3a] tracking-wide uppercase transition-transform active:translate-y-0.5 focus:outline-none"}
-                style={{
-                  background: "linear-gradient(180deg, #0d5a86 0%, #0a4566 100%)",
-                  boxShadow: "0 3px 6px rgba(0,0,0,0.45)",
-                }}
-              >
-                Sign In
-              </button>
-            </form>
-          )}
+          {!user && <SignInButton />}
         </nav>
       </div>
     </header>

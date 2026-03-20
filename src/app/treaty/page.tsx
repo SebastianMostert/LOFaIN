@@ -1,7 +1,6 @@
-import { prisma } from "@/prisma";
-import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import TreatyClient from "./TreatyClient";
+import { getLeagueTreaty } from "./data";
 
 export const dynamic = "force-static";
 export const revalidate = 3600;
@@ -9,23 +8,19 @@ export const revalidate = 3600;
 const baseUrl = process.env.NEXT_PUBLIC_BASE_URL;
 
 export const metadata: Metadata = {
-    title: "Treaty • League",
+  title: "Treaty - League",
+  description: "Read the foundational treaty of the League of Free and Independent Nations.",
+  keywords: ["treaty", "league", "founding document"],
+  alternates: { canonical: `${baseUrl}/treaty` },
+  openGraph: {
+    title: "Treaty - League",
     description: "Read the foundational treaty of the League of Free and Independent Nations.",
-    keywords: ["treaty", "league", "founding document"],
-    alternates: { canonical: `${baseUrl}/treaty` },
-    openGraph: {
-        title: "Treaty • League",
-        description: "Read the foundational treaty of the League of Free and Independent Nations.",
-        url: `${baseUrl}/treaty`,
-        images: [{ url: `${baseUrl}/logo.png`, alt: "League logo" }],
-    },
+    url: `${baseUrl}/treaty`,
+    images: [{ url: `${baseUrl}/logo.png`, alt: "League logo" }],
+  },
 };
 
 export default async function TreatyPage() {
-    const treaty = await prisma.treaty.findUnique({
-        where: { slug: "league-treaty-1900" },
-        include: { articles: { orderBy: { order: "asc" } } },
-    });
-    if (!treaty) notFound();
-    return <TreatyClient treaty={treaty} />;
+  const treaty = await getLeagueTreaty();
+  return <TreatyClient treaty={treaty} />;
 }
