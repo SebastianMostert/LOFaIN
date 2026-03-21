@@ -37,9 +37,9 @@ export default async function MyCountryPage() {
   if (!session) redirect(getSignInPath("/members/me"));
 
   const user = session.user;
-  const countryCode = user.country?.code ?? null;
+  const countryLookup = user.country?.slug ?? user.country?.code ?? null;
 
-  if (!countryCode) {
+  if (!countryLookup) {
     return (
       <section className="rounded-2xl border border-stone-800 bg-stone-900 p-6">
         <h2 className={`${epunda.className} text-xl font-semibold`}>No Country Assigned</h2>
@@ -53,7 +53,7 @@ export default async function MyCountryPage() {
     );
   }
 
-  const country = await getCountry(countryCode);
+  const country = await getCountry(countryLookup);
 
   if (!country) {
     return (
@@ -109,7 +109,7 @@ export default async function MyCountryPage() {
           <div className="mt-6 grid gap-3 sm:grid-cols-3">
             <Metric label="Date joined" value={formatDate(country.createdAt)} />
             <Metric label="Delegates" value={String(country.users.length)} />
-            <Metric label="Profile route" value={`/members/${country.code ?? country.slug}`} />
+            <Metric label="Profile route" value={`/members/${country.slug}`} />
           </div>
 
           <div className="mt-8">
@@ -147,7 +147,7 @@ export default async function MyCountryPage() {
         <div className="rounded-2xl border border-stone-800 bg-stone-900 p-4">
           <div className="text-xs uppercase tracking-[0.24em] text-stone-400">Public Link</div>
           <Link
-            href={`/members/${country.code ?? country.slug}`}
+            href={`/members/${country.slug}`}
             className="mt-3 inline-flex rounded-full border border-stone-700 px-4 py-2 text-sm text-stone-200 transition hover:border-stone-500 hover:text-stone-50"
           >
             View public profile

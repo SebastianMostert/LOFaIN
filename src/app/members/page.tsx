@@ -9,16 +9,16 @@ import { formatDate } from "@/utils/formatting";
 const baseUrl = process.env.NEXT_PUBLIC_BASE_URL;
 
 type SortKey = "name" | "delegates" | "joined";
-type FilterKey = "all" | "veto" | "chair";
+type FilterKey = "all" | "active" | "former" | "veto" | "chair";
 
 export const metadata: Metadata = {
   title: "Countries - League",
-  description: "Browse member countries of the League of Free and Independent Nations.",
+  description: "Browse current and former member countries of the League of Free and Independent Nations.",
   keywords: ["countries", "members", "league"],
   alternates: { canonical: `${baseUrl}/members` },
   openGraph: {
     title: "Countries - League",
-    description: "Browse member countries of the League of Free and Independent Nations.",
+    description: "Browse current and former member countries of the League of Free and Independent Nations.",
     url: `${baseUrl}/members`,
     images: [{ url: `${baseUrl}/logo.png`, alt: "League logo" }],
   },
@@ -49,7 +49,6 @@ export default async function CountriesPage({
   const filter = (typeof params.filter === "string" ? params.filter : "all") as FilterKey;
 
   const countries = await prisma.country.findMany({
-    where: { isActive: true },
     select: {
       id: true,
       name: true,
@@ -57,6 +56,7 @@ export default async function CountriesPage({
       code: true,
       colorHex: true,
       hasVeto: true,
+      isActive: true,
       createdAt: true,
       _count: { select: { users: true } },
     },
@@ -66,9 +66,11 @@ export default async function CountriesPage({
     .map((country) => ({
       ...country,
       isChair: country.slug === "chair",
-      href: country.code ? `/members/${country.code}` : `/members/${country.slug}`,
+      href: `/members/${country.slug}`,
     }))
     .filter((country) => {
+      if (filter === "active" && !country.isActive) return false;
+      if (filter === "former" && country.isActive) return false;
       if (filter === "veto" && !country.hasVeto) return false;
       if (filter === "chair" && !country.isChair) return false;
       if (!query) return true;
@@ -132,7 +134,9 @@ export default async function CountriesPage({
                 defaultValue={filter}
                 className="rounded-xl border border-stone-700 bg-stone-950 px-4 py-2.5 text-stone-100"
               >
-                <option value="all">All members</option>
+                <option value="all">All countries</option>
+                <option value="active">Current members</option>
+                <option value="former">Former members</option>
                 <option value="veto">Veto holders</option>
                 <option value="chair">Chair only</option>
               </select>
@@ -206,6 +210,11 @@ export default async function CountriesPage({
                             Veto power
                           </span>
                         )}
+                        {!country.isActive && (
+                          <span className="rounded-full border border-stone-600 bg-stone-800/80 px-2.5 py-1 text-xs text-stone-300">
+                            Former member
+                          </span>
+                        )}
                         {country.isChair && (
                           <span className={`rounded-full border px-2.5 py-1 text-xs ${badgeClasses("chair")}`}>
                             Current chair
@@ -230,7 +239,7 @@ export default async function CountriesPage({
                   />
                 </div>
 
-                <dl className="mt-5 grid grid-cols-2 gap-3 text-sm sm:grid-cols-4">
+                <dl className="mt-5 grid grid-cols-2 gap-3 text-sm sm:grid-cols-5">
                   <div className="rounded-xl border border-stone-800 bg-stone-950/70 p-3">
                     <dt className="text-xs uppercase tracking-[0.2em] text-stone-400">Joined</dt>
                     <dd className="mt-1 text-stone-100">{formatDate(country.createdAt)}</dd>
@@ -246,6 +255,10 @@ export default async function CountriesPage({
                   <div className="rounded-xl border border-stone-800 bg-stone-950/70 p-3">
                     <dt className="text-xs uppercase tracking-[0.2em] text-stone-400">Chair</dt>
                     <dd className="mt-1 text-stone-100">{country.isChair ? "Holding office" : "Not current"}</dd>
+                  </div>
+                  <div className="rounded-xl border border-stone-800 bg-stone-950/70 p-3">
+                    <dt className="text-xs uppercase tracking-[0.2em] text-stone-400">Membership</dt>
+                    <dd className="mt-1 text-stone-100">{country.isActive ? "Current member" : "Former member"}</dd>
                   </div>
                 </dl>
 

@@ -12,11 +12,15 @@ export async function POST(
 
         const amendment = await prisma.amendment.findUnique({
             where: { slug: awaitedParams.slug },
-            select: { id: true, title: true },
+            select: { id: true, title: true, status: true },
         });
 
         if (!amendment) {
             throw new ApiError(404, "Amendment not found");
+        }
+
+        if (amendment.status !== "OPEN") {
+            throw new ApiError(409, "Discussion can only be opened for active amendments");
         }
 
         const threadSlug = `amendment-${awaitedParams.slug}-discussion`;

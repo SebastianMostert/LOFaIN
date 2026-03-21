@@ -18,10 +18,10 @@ export async function generateMetadata({
   const [amendment, discussionThread] = await Promise.all([
     prisma.amendment.findUnique({
       where: { slug },
-      select: { title: true },
+      select: { title: true, status: true },
     }),
     prisma.discussionThread.findFirst({
-      where: { slug: { in: [slug, `${slug}-discussion`] } },
+      where: { slug: { in: [`amendment-${slug}-discussion`, slug, `${slug}-discussion`] } },
       select: { title: true },
     }),
   ]);
@@ -55,10 +55,10 @@ export default async function AmendmentDiscussionPage({
   const [amendment, discussionThread, countries] = await Promise.all([
     prisma.amendment.findUnique({
       where: { slug },
-      select: { id: true, title: true },
+      select: { id: true, title: true, status: true },
     }),
     prisma.discussionThread.findFirst({
-      where: { slug: { in: [slug, `${slug}-discussion`] } },
+      where: { slug: { in: [`amendment-${slug}-discussion`, slug, `${slug}-discussion`] } },
       select: { id: true, slug: true, title: true },
     }),
     prisma.country.findMany({
@@ -69,6 +69,10 @@ export default async function AmendmentDiscussionPage({
   ]);
 
   if (!amendment) {
+    notFound();
+  }
+
+  if (amendment.status !== "OPEN" && discussionThread == null) {
     notFound();
   }
 

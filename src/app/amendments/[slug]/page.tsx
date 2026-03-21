@@ -177,6 +177,11 @@ export default async function AmendmentPage({
   });
   if (!amendment) notFound();
 
+  const discussionThread = await prisma.discussionThread.findFirst({
+    where: { slug: { in: [`amendment-${amendment.slug}-discussion`, amendment.slug, `${amendment.slug}-discussion`] } },
+    select: { id: true },
+  });
+
   const targetArticle = amendment.targetArticleId
     ? await prisma.article.findUnique({
         where: { id: amendment.targetArticleId },
@@ -262,12 +267,14 @@ export default async function AmendmentPage({
               Open target article
             </Link>
           )}
-          <Link
-            href={`/amendments/${amendment.slug}/discussion`}
-            className="rounded-full border border-stone-700 px-4 py-2 text-sm text-stone-200 transition hover:border-stone-500 hover:text-stone-50"
-          >
-            Open discussion
-          </Link>
+          {(amendment.status === "OPEN" || discussionThread) && (
+            <Link
+              href={`/amendments/${amendment.slug}/discussion`}
+              className="rounded-full border border-stone-700 px-4 py-2 text-sm text-stone-200 transition hover:border-stone-500 hover:text-stone-50"
+            >
+              {discussionThread ? "Open discussion" : "Start discussion"}
+            </Link>
+          )}
         </div>
       </header>
 

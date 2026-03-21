@@ -107,7 +107,8 @@ export default async function TreatyPdfPreviewPage({
   const autoPrint = typeof params.autoprint === "string" && params.autoprint === "1";
   const download = typeof params.download === "string" && params.download === "1";
   const treaty = await getLeagueTreaty();
-  const preamble = splitPreambleNicely(treaty.preamble ?? "");
+  const snapshot = treaty.snapshots[treaty.snapshots.length - 1]!;
+  const preamble = splitPreambleNicely(snapshot.preamble ?? "");
 
   return (
     <main
@@ -180,7 +181,7 @@ export default async function TreatyPdfPreviewPage({
         </section>
 
         <section className="mt-[21pt]">
-          {treaty.articles.map((article) => (
+          {snapshot.articles.map((article) => (
             <ArticleBlock key={article.id} article={article} />
           ))}
         </section>

@@ -1,6 +1,6 @@
 import Image from "next/image";
 import type { Metadata } from "next";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { epunda } from "@/app/fonts";
 import FlagImage from "@/components/FlagImage";
 import { getCountry } from "@/utils/country";
@@ -62,8 +62,12 @@ export default async function PublicCountryPage({
   const awaitedParams = await params;
   const country = await getCountry(awaitedParams.slugOrCode);
   if (!country) notFound();
+  if (awaitedParams.slugOrCode.toLowerCase() !== country.slug.toLowerCase()) {
+    redirect(`/members/${country.slug}`);
+  }
 
   const isChair = country.slug === "chair";
+  const membershipStatus = country.isActive ? "Current member" : "Former member";
 
   return (
     <section className="overflow-hidden rounded-2xl border border-stone-800 bg-stone-900">
@@ -95,6 +99,11 @@ export default async function PublicCountryPage({
                       Veto power
                     </span>
                   )}
+                  {!country.isActive && (
+                    <span className="rounded-full border border-stone-600 bg-stone-800/80 px-3 py-1 text-stone-300">
+                      Former member
+                    </span>
+                  )}
                   {isChair && (
                     <span className="rounded-full border border-sky-500/30 bg-sky-500/10 px-3 py-1 text-sky-200">
                       Current chair
@@ -108,7 +117,7 @@ export default async function PublicCountryPage({
           <dl className="mt-6 grid gap-3 sm:grid-cols-3">
             <StatCard label="Date joined" value={formatDate(country.createdAt)} />
             <StatCard label="Delegates" value={String(country.users.length)} />
-            <StatCard label="Status" value={isChair ? "Chairing member" : "Standard member"} />
+            <StatCard label="Status" value={isChair ? "Chairing member" : membershipStatus} />
           </dl>
 
           <div className="mt-8">
@@ -158,6 +167,7 @@ export default async function PublicCountryPage({
             <div className="text-xs uppercase tracking-[0.24em] text-stone-400">Quick Facts</div>
             <ul className="mt-3 space-y-2 text-sm text-stone-300">
               <li>Joined the League on {formatDate(country.createdAt)}.</li>
+              <li>{country.isActive ? "Currently sits as an active League member." : "Previously sat as a League member and is no longer active."}</li>
               <li>{country.hasVeto ? "Can exercise veto rights on qualifying matters." : "Does not currently hold veto rights."}</li>
               <li>{isChair ? "Currently holds the chair." : "Is not the current chair."}</li>
             </ul>
