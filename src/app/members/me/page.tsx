@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { auth, getSignInPath } from "@/auth";
 import { epunda } from "@/app/fonts";
 import FlagImage from "@/components/FlagImage";
+import { getCurrentChairAssignment } from "@/utils/chair";
 import { getCountry } from "@/utils/country";
 import { formatDate } from "@/utils/formatting";
 
@@ -53,7 +54,7 @@ export default async function MyCountryPage() {
     );
   }
 
-  const country = await getCountry(countryLookup);
+  const [country, chairAssignment] = await Promise.all([getCountry(countryLookup), getCurrentChairAssignment()]);
 
   if (!country) {
     return (
@@ -64,7 +65,7 @@ export default async function MyCountryPage() {
     );
   }
 
-  const isChair = country.slug === "chair";
+  const isChair = chairAssignment.effectiveChair.id === country.id;
 
   return (
     <section className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
@@ -162,6 +163,15 @@ export default async function MyCountryPage() {
           />
           <p className="mt-3 text-sm text-stone-300">
             Use this profile as the private landing page for your delegation.
+          </p>
+        </div>
+        <div className="rounded-2xl border border-stone-800 bg-stone-900 p-4">
+          <div className="text-xs uppercase tracking-[0.24em] text-stone-400">Chair Rotation</div>
+          <p className="mt-3 text-sm text-stone-300">
+            Current chair: <span className="font-medium text-stone-100">{chairAssignment.effectiveChair.name}</span>
+          </p>
+          <p className="mt-1 text-sm text-stone-400">
+            Term length depends on chair status: one week for veto powers, two weeks for non-veto powers.
           </p>
         </div>
       </aside>

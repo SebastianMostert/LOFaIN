@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/prisma";
 import { ApiError, requireAuthContext } from "@/utils/api/guards";
+import { getChairAssignmentForMotion } from "@/utils/chair";
 import z from "zod";
 
 const ruleSchema = z.object({
@@ -11,7 +12,7 @@ const ruleSchema = z.object({
 
 export async function POST(req: Request) {
     try {
-        const { userId, country } = await requireAuthContext({ requireChair: true });
+        const { userId, country } = await requireAuthContext();
         const parsed = ruleSchema.safeParse(await req.json());
 
         if (!parsed.success) {
@@ -25,6 +26,11 @@ export async function POST(req: Request) {
 
         if (!motion) {
             throw new ApiError(404, "Motion not found");
+        }
+
+        const chairAssignment = await getChairAssignmentForMotion(motion.id);
+        if (chairAssignment.effectiveChair.id !== country.id) {
+            throw new ApiError(403, "Only the presiding chair may rule on this motion");
         }
 
         const now = new Date();
@@ -49,6 +55,9 @@ export async function POST(req: Request) {
                     note: parsed.data.note ?? `${parsed.data.outcome} ruling issued`,
                     metadata: {
                         outcome: parsed.data.outcome,
+                        chairCountryId: chairAssignment.effectiveChair.id,
+                        chairCountryName: chairAssignment.effectiveChair.name,
+                        substituteReason: chairAssignment.substituteReason,
                     },
                 },
             });

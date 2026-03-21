@@ -26,4 +26,11 @@ export const amendmentSchema = z
                 message: "newBody is required for ADD/EDIT",
             });
         }
+        if (data.op === "ADD" && !data.newHeading) {
+            ctx.addIssue({
+                code: "custom",
+                path: ["newHeading"],
+                message: "newHeading is required for ADD",
+            });
+        }
     });

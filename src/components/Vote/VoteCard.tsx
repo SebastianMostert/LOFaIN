@@ -63,17 +63,17 @@ export default function VoteCard({ slug, status, myVote }: { slug: string; statu
     };
 
     return (
-        <div className="rounded-2xl border-2 border-stone-900 bg-stone-100 p-4 shadow-[0_2px_0_rgba(0,0,0,1)]">
-            <div className="mb-3 text-center">
-                <div className="text-xs uppercase tracking-wide text-stone-600">
-                    {canVote ? "Cast your vote" : "Voting closed"}
+        <div className="rounded-[1.5rem] border border-stone-300 bg-white/80 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.7)]">
+            <div className="mb-4 text-center">
+                <div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-stone-500">
+                    {canVote ? "Cast your vote" : status === "DRAFT" ? "Debate in progress" : "Voting closed"}
                 </div>
                 <div className="mt-1 text-sm text-stone-700">
-                    Your choice: <strong>{choice ?? "ABSENT"}</strong>
+                    Your choice: <strong className="text-stone-900">{choice ?? "ABSENT"}</strong>
                 </div>
             </div>
 
-            <div className="grid gap-2">
+            <div className="grid gap-3">
                 <Btn label="Aye" value="AYE" bg="bg-emerald-600" outline="border-stone-400" />
                 <Btn label="Nay" value="NAY" bg="bg-rose-600" outline="border-stone-400" />
                 <Btn label="Abstain" value="ABSTAIN" bg="bg-stone-500" outline="border-stone-400" />

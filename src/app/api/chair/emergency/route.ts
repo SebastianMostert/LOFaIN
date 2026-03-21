@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/prisma";
 import { ApiError, requireAuthContext } from "@/utils/api/guards";
+import { getChairAssignmentForThread } from "@/utils/chair";
 import z from "zod";
 
 const emergencySchema = z.discriminatedUnion("action", [
@@ -52,9 +53,18 @@ async function ensureThread(threadId: string) {
     return thread;
 }
 
+async function ensurePresidingChair(countryId: string, threadId: string) {
+    const chairAssignment = await getChairAssignmentForThread(threadId);
+    if (chairAssignment.effectiveChair.id !== countryId) {
+        throw new ApiError(403, "Only the presiding chair may perform this action");
+    }
+
+    return chairAssignment;
+}
+
 export async function POST(req: Request) {
     try {
-        const { userId, country } = await requireAuthContext({ requireChair: true });
+        const { userId, country } = await requireAuthContext();
         const parsed = emergencySchema.safeParse(await req.json());
 
         if (!parsed.success) {
@@ -67,12 +77,14 @@ export async function POST(req: Request) {
         if (payload.action === "RESTORE_POST") {
             const post = await prisma.discussionPost.findUnique({
                 where: { id: payload.postId },
-                select: { id: true, isDeleted: true },
+                select: { id: true, isDeleted: true, threadId: true },
             });
 
             if (!post) {
                 throw new ApiError(404, "Post not found");
             }
+
+            const chairAssignment = await ensurePresidingChair(country.id, post.threadId);
 
             const restoredPost = await prisma.discussionPost.update({
                 where: { id: post.id },
@@ -95,6 +107,9 @@ export async function POST(req: Request) {
                     note: payload.note ?? null,
                     metadata: {
                         action: payload.action,
+                        chairCountryId: chairAssignment.effectiveChair.id,
+                        chairCountryName: chairAssignment.effectiveChair.name,
+                        substituteReason: chairAssignment.substituteReason,
                     },
                 },
             });
@@ -103,6 +118,7 @@ export async function POST(req: Request) {
         }
 
         const thread = await ensureThread(payload.threadId);
+        const chairAssignment = await ensurePresidingChair(country.id, thread.id);
         let updatedThread;
         let type: "LOCK_THREAD" | "UNLOCK_THREAD" | "PIN_THREAD" | "UNPIN_THREAD" | "ARCHIVE_THREAD";
         let metadata: Record<string, unknown> | undefined;
@@ -160,6 +176,9 @@ export async function POST(req: Request) {
                 metadata: {
                     action: payload.action,
                     ...(metadata ?? {}),
+                    chairCountryId: chairAssignment.effectiveChair.id,
+                    chairCountryName: chairAssignment.effectiveChair.name,
+                    substituteReason: chairAssignment.substituteReason,
                     timestamp: now.toISOString(),
                 },
             },

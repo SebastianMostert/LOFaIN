@@ -1,0 +1,7 @@
+{
+  "$schema": "./node_modules/partykit/schema.json",
+  "name": "lofain-discussion",
+  "main": "partykit/server.ts",
+  "port": 1999,
+  "persist": true
+}

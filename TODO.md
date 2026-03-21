@@ -44,3 +44,14 @@
 
 - The current council session page looks partly stubbed and would benefit from a clearer MVP definition
 - The members pages already expose useful country data, but the presentation is still closer to admin output than a polished public-facing directory
+
+
+
+
+
+
+IMPORTANT AS FUCK
+Continue work on the discussions page
+The chair still needs the power to:
+- Nudge a delegate to finish speaking
+- Stop a delegate from speaking

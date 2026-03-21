@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/prisma";
 import { ApiError, requireAuthContext } from "@/utils/api/guards";
+import { broadcastDiscussionEvent } from "@/utils/discussionEvents";
 import z from "zod";
 
 const createPostSchema = z.object({
@@ -121,6 +122,17 @@ export async function POST(
         await prisma.discussionThread.update({
             where: { id: thread.id },
             data: { lastPostAt: new Date() },
+        });
+
+        await broadcastDiscussionEvent(thread.id, {
+            type: "post.created",
+            post: {
+                ...post,
+                deletedAt: post.deletedAt ? post.deletedAt.toISOString() : null,
+                editedAt: post.editedAt ? post.editedAt.toISOString() : null,
+                createdAt: post.createdAt.toISOString(),
+                updatedAt: post.updatedAt.toISOString(),
+            },
         });
 
         return NextResponse.json({ post }, { status: 201 });

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/prisma";
 import { ApiError, requireAuthContext } from "@/utils/api/guards";
+import { broadcastDiscussionEvent } from "@/utils/discussionEvents";
 import z from "zod";
 
 const updatePostSchema = z.object({
@@ -103,6 +104,17 @@ export async function PATCH(
             },
         });
 
+        await broadcastDiscussionEvent(awaitedParams.threadId, {
+            type: "post.updated",
+            post: {
+                ...updated,
+                deletedAt: updated.deletedAt ? updated.deletedAt.toISOString() : null,
+                editedAt: updated.editedAt ? updated.editedAt.toISOString() : null,
+                createdAt: updated.createdAt.toISOString(),
+                updatedAt: updated.updatedAt.toISOString(),
+            },
+        });
+
         return NextResponse.json({ post: updated });
     } catch (error) {
         if (error instanceof ApiError) {
@@ -142,6 +154,11 @@ export async function DELETE(
         await prisma.discussionPost.update({
             where: { id: post.id },
             data: { isDeleted: true, deletedAt: new Date() },
+        });
+
+        await broadcastDiscussionEvent(awaitedParams.threadId, {
+            type: "post.deleted",
+            postId: post.id,
         });
 
         return NextResponse.json({ ok: true });

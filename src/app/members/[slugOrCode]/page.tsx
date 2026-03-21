@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 import { epunda } from "@/app/fonts";
 import FlagImage from "@/components/FlagImage";
+import { getCurrentChairAssignment } from "@/utils/chair";
 import { getCountry } from "@/utils/country";
 import { formatDate } from "@/utils/formatting";
 
@@ -60,13 +61,13 @@ export default async function PublicCountryPage({
   params: Promise<{ slugOrCode: string }>;
 }) {
   const awaitedParams = await params;
-  const country = await getCountry(awaitedParams.slugOrCode);
+  const [country, chairAssignment] = await Promise.all([getCountry(awaitedParams.slugOrCode), getCurrentChairAssignment()]);
   if (!country) notFound();
   if (awaitedParams.slugOrCode.toLowerCase() !== country.slug.toLowerCase()) {
     redirect(`/members/${country.slug}`);
   }
 
-  const isChair = country.slug === "chair";
+  const isChair = chairAssignment.effectiveChair.id === country.id;
   const membershipStatus = country.isActive ? "Current member" : "Former member";
 
   return (

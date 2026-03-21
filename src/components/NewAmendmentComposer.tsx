@@ -140,11 +140,14 @@ export default function NewAmendmentComposer({
                     <>
                         <div className="grid gap-4 md:grid-cols-2">
                             <div>
-                                <label className="block text-sm text-stone-300">New Heading (optional)</label>
+                                <label className="block text-sm text-stone-300">
+                                    {op === "ADD" ? "Heading" : "New Heading (optional)"}
+                                </label>
                                 <input
                                     name="newHeading"
                                     value={newHeading}
                                     onChange={(e) => setNewHeading(e.target.value)}
+                                    required={op === "ADD"}
                                     className="mt-1 w-full rounded border border-stone-700 bg-stone-900 p-2"
                                 />
                             </div>

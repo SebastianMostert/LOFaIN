@@ -42,7 +42,7 @@ export default async function NewAmendmentPage() {
     <main className="mx-auto max-w-[110rem] px-6 py-10 text-stone-100">
       <h1 className={`${epunda.className} text-2xl font-bold`}>Propose an Amendment</h1>
       <p className="mt-2 text-stone-400">
-        Any member may propose an amendment. Voting opens immediately, closes after 24 hours, and requires a two-thirds majority.
+        Any member may propose an amendment. New proposals enter debate first; voting opens only when the proposer starts the 24-hour vote.
       </p>
 
       <NewAmendmentComposer

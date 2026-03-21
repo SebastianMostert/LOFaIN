@@ -37,7 +37,7 @@ export default function AmendmentsClient({
 
   const initialQuery = (typeof searchParams.q === "string" ? searchParams.q : "") ?? "";
   const initialStatus =
-    typeof searchParams.status === "string" && ["OPEN", "CLOSED"].includes(searchParams.status)
+    typeof searchParams.status === "string" && ["DRAFT", "OPEN", "CLOSED"].includes(searchParams.status)
       ? (searchParams.status as AmendmentStatus)
       : "ALL";
   const initialOnlyNotVoted =
@@ -140,6 +140,7 @@ export default function AmendmentsClient({
               className="rounded-xl border border-stone-700 bg-stone-950 px-3 py-2 text-sm text-stone-100"
             >
               <option value="ALL">All</option>
+              <option value="DRAFT">Debate</option>
               <option value="OPEN">Open</option>
               <option value="CLOSED">Closed</option>
             </select>

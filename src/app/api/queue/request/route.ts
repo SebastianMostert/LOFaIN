@@ -1,8 +1,8 @@
-import { NextResponse } from 'next/server';
+import { NextResponse } from "next/server";
+import { requireAuthContext } from "@/utils/api/guards";
+import { getPartyKitRoomHttpUrl } from "@/utils/partykit";
 
-import { handleQueueRequest } from '@/app/api/socket/queueActions';
-
-export const runtime = 'edge';
+export const runtime = "nodejs";
 
 type QueueRequestBody = {
   threadId?: string;
@@ -30,10 +30,37 @@ export async function POST(request: Request) {
   }
 
   try {
-    const queue = handleQueueRequest(threadId, countryId);
+    const { country } = await requireAuthContext();
+    if (country.id !== countryId) {
+      return NextResponse.json({ error: "Cannot enqueue another country" }, { status: 403 });
+    }
+
+    const response = await fetch(getPartyKitRoomHttpUrl(threadId, "/actions"), {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-discussion-secret": process.env.DISCUSSION_REALTIME_SECRET ?? process.env.PARTYKIT_SHARED_SECRET ?? "discussion-dev-secret",
+      },
+      body: JSON.stringify({
+        type: "queue.request",
+        actor: {
+          countryId: country.id,
+          countryName: country.name,
+          countryCode: null,
+          canModerate: false,
+        },
+      }),
+      cache: "no-store",
+    });
+
+    if (!response.ok) {
+      return NextResponse.json({ error: "Unable to request queue position" }, { status: response.status });
+    }
+
+    const queue = await response.json();
     return NextResponse.json({ queue });
   } catch (error) {
-    console.error('Failed to enqueue request.', error);
-    return NextResponse.json({ error: 'Unable to request queue position' }, { status: 500 });
+    console.error("Failed to enqueue request.", error);
+    return NextResponse.json({ error: "Unable to request queue position" }, { status: 500 });
   }
 }

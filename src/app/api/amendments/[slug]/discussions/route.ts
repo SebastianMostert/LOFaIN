@@ -19,8 +19,8 @@ export async function POST(
             throw new ApiError(404, "Amendment not found");
         }
 
-        if (amendment.status !== "OPEN") {
-            throw new ApiError(409, "Discussion can only be opened for active amendments");
+        if (amendment.status === "CLOSED") {
+            throw new ApiError(409, "Discussion can only be opened before the amendment is closed");
         }
 
         const threadSlug = `amendment-${awaitedParams.slug}-discussion`;

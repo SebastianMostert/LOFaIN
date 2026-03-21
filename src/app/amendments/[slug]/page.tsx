@@ -3,6 +3,7 @@ import { notFound, redirect } from "next/navigation";
 import { auth, getSignInPath } from "@/auth";
 import { epunda } from "@/app/fonts";
 import StatusBanner from "@/components/Amendment/StatusBanner";
+import OpenVotingButton from "@/components/Amendment/OpenVotingButton";
 import VoteMeter from "@/components/Amendment/VoteMeter";
 import VoteSummary from "@/components/Amendment/VoteSummary";
 import DiffPreview from "@/components/DiffPreview";
@@ -46,17 +47,17 @@ const articleAnchor = (order: number) => `/treaty#art-${toRoman(order)}`;
 
 function Detail({ label, value }: { label: string; value: React.ReactNode }) {
   return (
-    <div className="rounded-xl border border-stone-800 bg-stone-900 p-3">
+    <div className="rounded-xl border border-stone-800 bg-stone-900 p-3 sm:p-4">
       <div className="text-xs uppercase tracking-[0.24em] text-stone-400">{label}</div>
-      <div className="mt-1 font-medium text-stone-100">{value}</div>
+      <div className="mt-1 break-words font-medium text-stone-100">{value}</div>
     </div>
   );
 }
 
 function SectionCard({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <article className="rounded-2xl border border-stone-700 bg-stone-900 p-5">
-      <h3 className={`${epunda.className} text-lg font-semibold text-stone-100`}>{title}</h3>
+    <article className="rounded-2xl border border-stone-700 bg-stone-900 p-4 sm:p-5">
+      <h3 className={`${epunda.className} text-lg font-semibold text-stone-100 sm:text-xl`}>{title}</h3>
       <div className="mt-3 leading-relaxed text-stone-300">{children}</div>
     </article>
   );
@@ -210,19 +211,25 @@ export default async function AmendmentPage({
   const vetoUsed = vetoers.length > 0;
   const totalMembers = amendment.eligibleCount || countries.length || 1;
   const myVote = user?.countryId ? byCountry.get(user.countryId) : undefined;
+  const canOpenVoting =
+    amendment.status === "DRAFT" &&
+    (
+      (amendment.proposerCountry?.id != null && amendment.proposerCountry.id === user?.countryId) ||
+      (amendment.proposerUser?.id != null && amendment.proposerUser.id === user?.id)
+    );
 
   return (
-    <main className="mx-auto max-w-7xl px-4 py-10 text-stone-100">
+    <main className="mx-auto max-w-7xl px-3 py-6 text-stone-100 sm:px-4 sm:py-10">
       <SlideOutVoteTab slug={amendment.slug} status={amendment.status} myVote={myVote || null} />
 
-      <header className="rounded-3xl border border-stone-800 bg-stone-900/80 p-6 text-center">
+      <header className="rounded-3xl border border-stone-800 bg-stone-900/80 p-4 text-center sm:p-6">
         <div className="text-xs uppercase tracking-[0.28em] text-stone-400">Amendment dossier</div>
-        <h1 className={`${epunda.className} mt-2 text-4xl font-extrabold sm:text-5xl`}>{amendment.title}</h1>
-        <div className="mx-auto mt-3 h-[3px] w-40 bg-red-600" />
+        <h1 className={`${epunda.className} mt-2 text-3xl font-extrabold leading-tight sm:text-4xl lg:text-5xl`}>{amendment.title}</h1>
+        <div className="mx-auto mt-3 h-[3px] w-24 bg-red-600 sm:w-40" />
 
-        <div className="mt-4 flex flex-wrap items-center justify-center gap-3 text-sm text-stone-300">
+        <div className="mt-4 flex flex-wrap items-center justify-center gap-2 text-xs text-stone-300 sm:gap-3 sm:text-sm">
           {amendment.proposerCountry && (
-            <span className="inline-flex items-center gap-2">
+            <span className="inline-flex items-center gap-2 text-left">
               <span className="relative inline-block h-4 w-6 overflow-hidden rounded-[2px] border border-stone-800 bg-white align-middle">
                 <FlagImage
                   src={`/flags/${(amendment.proposerCountry.code || "unknown").toLowerCase()}.svg`}
@@ -248,61 +255,76 @@ export default async function AmendmentPage({
           <StatusBanner
             status={amendment.status}
             result={amendment.result}
+            opensAt={amendment.opensAt ?? null}
             closesAt={amendment.closesAt ?? null}
             failureReason={amendment.failureReason ?? null}
           />
-          {amendment.closesAt && (
-            <div className="rounded-full border border-amber-500/30 bg-amber-500/10 px-4 py-2 text-sm text-amber-200">
+          {amendment.status === "DRAFT" && (
+            <div className="max-w-full rounded-2xl border border-amber-500/30 bg-amber-500/10 px-4 py-2 text-sm leading-relaxed text-amber-100 sm:rounded-full">
+              Debate comes first. Voting stays closed until the proposer opens the 24-hour vote.
+            </div>
+          )}
+          {amendment.closesAt && amendment.status === "OPEN" && (
+            <div className="max-w-full rounded-2xl border border-amber-500/30 bg-amber-500/10 px-4 py-2 text-sm leading-relaxed text-amber-200 sm:rounded-full">
               {formatDeadline(amendment.closesAt)}. Scheduled close: {formatDateTime(amendment.closesAt)}.
             </div>
           )}
           {amendment.status === "OPEN" && vetoUsed && (
-            <div className="rounded-md border border-rose-700 bg-rose-900/40 px-3 py-1 text-sm text-rose-200">
+            <div className="max-w-full rounded-md border border-rose-700 bg-rose-900/40 px-3 py-2 text-sm leading-relaxed text-rose-200">
               Veto used by {vetoers.join(", ")}. The amendment will fail unless withdrawn.
             </div>
           )}
         </div>
 
-        <div className="mt-6 flex flex-wrap justify-center gap-2">
+        <div className="mt-6 flex flex-col justify-center gap-2 sm:flex-row sm:flex-wrap">
           {targetArticle && (
             <Link
               href={articleAnchor(targetArticle.order)}
-              className="rounded-full border border-stone-700 px-4 py-2 text-sm text-stone-200 transition hover:border-stone-500 hover:text-stone-50"
+              className="rounded-full border border-stone-700 px-4 py-2 text-sm text-center text-stone-200 transition hover:border-stone-500 hover:text-stone-50"
             >
               Open target article
             </Link>
           )}
-          {(amendment.status === "OPEN" || discussionThread) && (
+          {amendment.status !== "CLOSED" && (
             <Link
               href={`/amendments/${amendment.slug}/discussion`}
-              className="rounded-full border border-stone-700 px-4 py-2 text-sm text-stone-200 transition hover:border-stone-500 hover:text-stone-50"
+              className="rounded-full border border-stone-700 px-4 py-2 text-sm text-center text-stone-200 transition hover:border-stone-500 hover:text-stone-50"
             >
               {discussionThread ? "Open discussion" : "Start discussion"}
             </Link>
           )}
+          {canOpenVoting && <OpenVotingButton slug={amendment.slug} />}
         </div>
       </header>
 
-      <VoteMeter
-        totalMembers={totalMembers}
-        votes={amendment.votes as { choice: Choice }[]}
-        closed={amendment.status !== "OPEN"}
-        result={amendment.result ?? null}
-      />
+      {amendment.status === "DRAFT" ? (
+        <section className="mx-auto mt-8 max-w-4xl rounded-2xl border border-amber-500/20 bg-amber-500/10 px-5 py-4 text-center text-sm leading-relaxed text-amber-100">
+          No voting record exists yet. Use the discussion session to debate the text, then open voting when the chamber is ready.
+        </section>
+      ) : (
+        <>
+          <VoteMeter
+            totalMembers={totalMembers}
+            votes={amendment.votes as { choice: Choice }[]}
+            closed={amendment.status !== "OPEN"}
+            result={amendment.result ?? null}
+          />
 
-      <VoteSummary countries={countries} byCountry={byCountry} />
+          <VoteSummary countries={countries} byCountry={byCountry} />
+        </>
+      )}
 
-      <section className="mt-10 grid grid-cols-1 gap-8 xl:grid-cols-[minmax(0,1fr)_340px]">
+      <section className="mt-8 grid grid-cols-1 gap-6 lg:mt-10 lg:gap-8 xl:grid-cols-[minmax(0,1fr)_340px]">
         <div className="space-y-6">
           {amendment.rationale && (
-            <article className="rounded-2xl border border-stone-700 bg-stone-900 p-5">
-              <h2 className={`${epunda.className} text-xl font-semibold text-stone-100`}>Amendment Summary</h2>
+            <article className="rounded-2xl border border-stone-700 bg-stone-900 p-4 sm:p-5">
+              <h2 className={`${epunda.className} text-xl font-semibold text-stone-100 sm:text-2xl`}>Amendment Summary</h2>
               <p className="mt-2 whitespace-pre-wrap leading-relaxed text-stone-300">{amendment.rationale}</p>
             </article>
           )}
 
           <section className="space-y-4">
-            <h2 className={`${epunda.className} text-xl font-semibold text-stone-100`}>Amendment Details</h2>
+            <h2 className={`${epunda.className} text-xl font-semibold text-stone-100 sm:text-2xl`}>Amendment Details</h2>
             <div className="grid gap-3 sm:grid-cols-2">
               <Detail label="Operation" value={labelForOp(amendment.op)} />
               {targetArticle ? (
@@ -350,11 +372,17 @@ export default async function AmendmentPage({
 
         <aside className="space-y-6">
           <SectionCard title="Voting Window">
-            <ul className="space-y-2 text-sm">
-              <li>Opens: {formatDateTime(amendment.opensAt)}</li>
-              <li>Closes: {formatDateTime(amendment.closesAt)}</li>
-              <li>{formatDeadline(amendment.closesAt)}</li>
-            </ul>
+            {amendment.status === "DRAFT" ? (
+              <p className="text-sm text-stone-300">
+                Voting has not been scheduled yet. Once debate is complete, the proposer can open a 24-hour voting window.
+              </p>
+            ) : (
+              <ul className="space-y-2 text-sm">
+                <li>Opens: {formatDateTime(amendment.opensAt)}</li>
+                <li>Closes: {formatDateTime(amendment.closesAt)}</li>
+                <li>{formatDeadline(amendment.closesAt)}</li>
+              </ul>
+            )}
           </SectionCard>
         </aside>
       </section>

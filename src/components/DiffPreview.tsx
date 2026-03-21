@@ -57,7 +57,7 @@ export default function DiffPreview({
       )}
 
       <div className="overflow-x-auto">
-        <div className="min-w-[640px]">
+        <div className="min-w-[520px] sm:min-w-[640px]">
           <div className="grid grid-cols-[56px_56px_1fr] border-b border-stone-800 bg-stone-950/60 text-xs text-stone-400">
             <div className="px-3 py-2">Before</div>
             <div className="border-l border-stone-800 px-3 py-2">After</div>

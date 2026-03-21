@@ -32,6 +32,7 @@ export default function AmendmentCard({
   eligible: number;
   highlight?: (s: string) => React.ReactNode;
 }) {
+  const isDraft = amendment.status === "DRAFT";
   const totalVotes = counts.AYE + counts.NAY + counts.ABSTAIN;
   const absent = Math.max(0, eligible - totalVotes);
 
@@ -41,7 +42,7 @@ export default function AmendmentCard({
 
   const thresholdCount = Math.ceil((2 / 3) * eligible);
   const thresholdPct = clampPct((2 / 3) * 100);
-  const deadlineText = amendment.status === "OPEN" ? formatDeadline(amendment.closesAt) : formatDeadline(amendment.closesAt);
+  const deadlineText = amendment.closesAt ? formatDeadline(amendment.closesAt) : null;
 
   return (
     <Link
@@ -51,7 +52,8 @@ export default function AmendmentCard({
       <div className="flex items-start justify-between gap-3">
         <StatusBadge status={amendment.status} result={amendment.result} />
         <div className="text-right text-xs leading-5 text-stone-300">
-          {amendment.closesAt && <div className="font-semibold text-amber-200">{deadlineText}</div>}
+          {deadlineText && <div className="font-semibold text-amber-200">{deadlineText}</div>}
+          {isDraft && <div className="font-semibold text-amber-200">Debate underway</div>}
           {amendment.opensAt && <div>Opened: {formatDateTime(amendment.opensAt)}</div>}
           {amendment.closesAt && <div>Closes: {formatDateTime(amendment.closesAt)}</div>}
         </div>
@@ -62,23 +64,31 @@ export default function AmendmentCard({
       </h2>
 
       <div className="mt-4">
-        <MiniVoteMeter
-          ayePct={ayePct}
-          neutralPct={neutralPct}
-          nayPct={nayPct}
-          thresholdPct={thresholdPct}
-          closed={amendment.status !== "OPEN"}
-          result={amendment.result}
-        />
+        {isDraft ? (
+          <div className="rounded-xl border border-amber-500/20 bg-amber-500/10 px-4 py-3 text-sm text-amber-100">
+            Debate phase. Voting will appear here once the proposer opens the floor.
+          </div>
+        ) : (
+          <>
+            <MiniVoteMeter
+              ayePct={ayePct}
+              neutralPct={neutralPct}
+              nayPct={nayPct}
+              thresholdPct={thresholdPct}
+              closed={amendment.status !== "OPEN"}
+              result={amendment.result}
+            />
 
-        <div className="mt-3 flex flex-wrap items-center justify-between gap-2 text-xs text-stone-300">
-          <span>
-            Aye {counts.AYE} | Nay {counts.NAY} | Abstain {counts.ABSTAIN} | Absent {absent}
-          </span>
-          <span>
-            {thresholdCount} / {eligible} needed
-          </span>
-        </div>
+            <div className="mt-3 flex flex-wrap items-center justify-between gap-2 text-xs text-stone-300">
+              <span>
+                Aye {counts.AYE} | Nay {counts.NAY} | Abstain {counts.ABSTAIN} | Absent {absent}
+              </span>
+              <span>
+                {thresholdCount} / {eligible} needed
+              </span>
+            </div>
+          </>
+        )}
       </div>
     </Link>
   );
@@ -95,6 +105,13 @@ function StatusBadge({
     return (
       <span className="inline-flex items-center gap-1 rounded-full border border-blue-700/60 bg-blue-900/40 px-2.5 py-1 text-[11px] font-medium text-blue-200">
         <span aria-hidden>*</span> Voting open
+      </span>
+    );
+  }
+  if (status === "DRAFT") {
+    return (
+      <span className="inline-flex items-center gap-1 rounded-full border border-amber-700/60 bg-amber-900/30 px-2.5 py-1 text-[11px] font-medium text-amber-100">
+        Debate
       </span>
     );
   }

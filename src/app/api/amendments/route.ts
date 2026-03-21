@@ -3,7 +3,6 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/prisma";
 import { auth } from "@/auth";
 import { stripArticlePrefix } from "@/utils/articleHeadings";
-import { countEligibleVotingCountries } from "@/utils/country";
 import { amendmentSchema } from "@/utils/zodSchema";
 
 async function nextAmendmentSlug() {
@@ -49,15 +48,12 @@ export async function POST(req: Request) {
     // Per-op validation
     if ((op === "REMOVE" || op === "EDIT") && !targetArticleId) return NextResponse.json({ error: "targetArticleId is required for EDIT/REMOVE" }, { status: 400 });
     if ((op === "ADD" || op === "EDIT") && !newBody) return NextResponse.json({ error: "newBody is required for ADD/EDIT" }, { status: 400 });
+    if (op === "ADD" && !newHeading) return NextResponse.json({ error: "newHeading is required for ADD" }, { status: 400 });
 
 
     const treaty = await prisma.treaty.findUnique({ where: { slug: treatySlug }, select: { id: true } });
     if (!treaty) return NextResponse.json({ error: "Treaty not found" }, { status: 404 });
-
-    const now = new Date();
-    const eligibleCount = await countEligibleVotingCountries(now);
     const slug = await nextAmendmentSlug();
-    const closesAt = new Date(now.getTime() + 24 * 60 * 60 * 1000); // +24h
 
     const amendment = await prisma.amendment.create({
         data: {
@@ -70,11 +66,11 @@ export async function POST(req: Request) {
             newHeading: newHeading ? stripArticlePrefix(newHeading) : null,
             newBody: newBody ?? null,
             newOrder: newOrder ?? null,
-            status: "OPEN",
-            opensAt: now,
-            closesAt,
+            status: "DRAFT",
+            opensAt: null,
+            closesAt: null,
             threshold: 2 / 3,
-            eligibleCount,
+            eligibleCount: null,
             proposerCountryId: countryId,
             proposerUserId: session.user?.id ?? null,
         },

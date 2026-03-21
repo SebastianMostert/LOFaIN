@@ -1,6 +1,7 @@
 import type { Session } from "@/auth";
 import { auth } from "@/auth";
 import { prisma } from "@/prisma";
+import { getCurrentChairAssignment } from "@/utils/chair";
 
 export class ApiError extends Error {
     public readonly status: number;
@@ -30,6 +31,7 @@ export interface AuthContext {
     userId?: string;
     country: CountryAuthContext;
     quorum: QuorumInfo;
+    chairAssignment?: Awaited<ReturnType<typeof getCurrentChairAssignment>>;
 }
 
 const MINIMUM_COUNTRIES_FOR_QUORUM = 3;
@@ -117,10 +119,18 @@ export async function requireAuthContext(options?: { requireChair?: boolean }): 
     const quorum = await fetchQuorumInfo();
 
     if (options?.requireChair) {
-        const isChair = country.hasVeto || country.slug === "chair";
-        if (!isChair) {
+        const chairAssignment = await getCurrentChairAssignment();
+        if (chairAssignment.effectiveChair.id !== country.id) {
             throw new ApiError(403, "Chair privileges required");
         }
+
+        return {
+            session,
+            userId: session.user?.id ?? undefined,
+            country,
+            quorum,
+            chairAssignment,
+        };
     }
 
     return {

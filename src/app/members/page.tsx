@@ -4,6 +4,7 @@ import { auth } from "@/auth";
 import { epunda } from "@/app/fonts";
 import FlagImage from "@/components/FlagImage";
 import { prisma } from "@/prisma";
+import { getCurrentChairAssignment } from "@/utils/chair";
 import { formatDate } from "@/utils/formatting";
 
 const baseUrl = process.env.NEXT_PUBLIC_BASE_URL;
@@ -48,7 +49,8 @@ export default async function CountriesPage({
   const sort = (typeof params.sort === "string" ? params.sort : "name") as SortKey;
   const filter = (typeof params.filter === "string" ? params.filter : "all") as FilterKey;
 
-  const countries = await prisma.country.findMany({
+  const [countries, chairAssignment] = await Promise.all([
+    prisma.country.findMany({
     select: {
       id: true,
       name: true,
@@ -60,12 +62,15 @@ export default async function CountriesPage({
       createdAt: true,
       _count: { select: { users: true } },
     },
-  });
+    }),
+    getCurrentChairAssignment(),
+  ]);
+  const currentChairCountryId = chairAssignment.effectiveChair.id;
 
   const shapedCountries = countries
     .map((country) => ({
       ...country,
-      isChair: country.slug === "chair",
+      isChair: country.id === currentChairCountryId,
       href: `/members/${country.slug}`,
     }))
     .filter((country) => {

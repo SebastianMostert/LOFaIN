@@ -1,0 +1,1 @@
+export const SPEAKER_RECOGNITION_MS = 60_000;
