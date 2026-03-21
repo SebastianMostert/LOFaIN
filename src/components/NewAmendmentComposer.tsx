@@ -4,6 +4,7 @@
 import { useEffect, useMemo, useState } from "react";
 import DiffPreview from "@/components/DiffPreview";
 import { epunda } from "@/app/fonts";
+import { formatArticleHeading, stripArticlePrefix } from "@/utils/articleHeadings";
 
 type Article = { id: string; order: number; heading: string; body: string };
 
@@ -42,7 +43,7 @@ export default function NewAmendmentComposer({
     useEffect(() => {
         if (op === "EDIT" && targetArticle) {
             setNewBody(targetArticle.body);
-            setNewHeading((h) => h || targetArticle.heading);
+            setNewHeading((h) => h || stripArticlePrefix(targetArticle.heading));
         }
     }, [op, targetArticle]);
 
@@ -128,7 +129,7 @@ export default function NewAmendmentComposer({
                             <option value="">Select an article…</option>
                             {articles.map((a) => (
                                 <option key={a.id} value={a.id}>
-                                    {a.order}. {a.heading}
+                                    {formatArticleHeading(a.order, a.heading)}
                                 </option>
                             ))}
                         </select>
@@ -153,7 +154,7 @@ export default function NewAmendmentComposer({
                                 <div className="rounded border border-stone-700 bg-stone-900 p-2 text-sm text-stone-300">
                                     Will be added as <span className="font-semibold">Article {nextOrder}</span>{" "}
                                     {lastArticle ? (
-                                        <>after “{lastArticle.heading}”.</>
+                                        <>after “{formatArticleHeading(lastArticle.order, lastArticle.heading)}”.</>
                                     ) : (
                                         <>as the first article.</>
                                     )}
@@ -181,7 +182,7 @@ export default function NewAmendmentComposer({
                         This proposal will <span className="font-semibold">remove</span>{" "}
                         {targetArticle ? (
                             <>
-                                Article {targetArticle.order}: “{targetArticle.heading}”.
+                                {formatArticleHeading(targetArticle.order, targetArticle.heading)}.
                             </>
                         ) : (
                             "the selected article."
@@ -215,11 +216,11 @@ export default function NewAmendmentComposer({
                         {op === "ADD" && "Adding a new article at the end"}
                         {op === "EDIT" &&
                             (targetArticle
-                                ? `Editing: ${targetArticle.order}. ${targetArticle.heading}`
+                                ? `Editing: ${formatArticleHeading(targetArticle.order, targetArticle.heading)}`
                                 : "Select an article to edit")}
                         {op === "REMOVE" &&
                             (targetArticle
-                                ? `Removing: ${targetArticle.order}. ${targetArticle.heading}`
+                                ? `Removing: ${formatArticleHeading(targetArticle.order, targetArticle.heading)}`
                                 : "Select an article to remove")}
                     </div>
                 </div>
@@ -235,8 +236,7 @@ export default function NewAmendmentComposer({
                                 <div className="mt-3 text-stone-400">Article to be removed:</div>
                                 <div className="mt-1 rounded border border-stone-700 bg-stone-950 p-3">
                                     <div className="text-stone-200">
-                                        <span className="font-semibold">Article {targetArticle.order}.</span>{" "}
-                                        {targetArticle.heading}
+                                        {formatArticleHeading(targetArticle.order, targetArticle.heading)}
                                     </div>
                                     <pre className="mt-2 whitespace-pre-wrap text-stone-300">
                                         {targetArticle.body}
@@ -249,6 +249,7 @@ export default function NewAmendmentComposer({
                     <DiffPreview
                         op={op}
                         targetArticle={targetArticle}
+                        newOrder={op === "ADD" ? nextOrder : targetArticle?.order ?? null}
                         newHeading={newHeading}
                         newBody={newBody}
                     />

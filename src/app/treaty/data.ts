@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import { prisma } from "@/prisma";
+import { stripArticlePrefix } from "@/utils/articleHeadings";
 import seedTreaty from "../../../prisma/treaty.json";
 
 type TreatyArticle = {
@@ -46,7 +47,7 @@ function getFoundingTreaty() {
         if (article.order === 6) {
           return {
             ...article,
-            heading: "Article VI. Colonial Consultation",
+            heading: "Colonial Consultation",
             body:
               "1. The Parties will inform and consult one another before taking possession of any territory or establishing a protectorate.\n2. They will recognise and respect each other's agreed spheres of influence.\n3. The Parties will work to avoid rivalry or conflict over colonial or territorial matters.",
           };
@@ -102,6 +103,7 @@ function applyAmendment(
       id: amendment.targetArticleId ?? `amendment:${amendment.slug}`,
       order: insertAt + 1,
       heading: amendment.newHeading,
+      
       body: amendment.newBody,
     });
     upsertArticleOrder(next);
@@ -113,7 +115,7 @@ function applyAmendment(
   if (amendment.op === "EDIT") {
     next[targetIndex] = {
       ...next[targetIndex],
-      heading: amendment.newHeading ?? next[targetIndex].heading,
+      heading: amendment.newHeading ? stripArticlePrefix(amendment.newHeading) : next[targetIndex].heading,
       body: amendment.newBody ?? next[targetIndex].body,
     };
     return next;
@@ -175,7 +177,7 @@ export async function getLeagueTreaty() {
   let workingArticles: TreatyArticle[] = foundingTreaty.articles.map((article) => ({
     id: `seed:${article.order}`,
     order: article.order,
-    heading: article.heading,
+    heading: stripArticlePrefix(article.heading),
     body: article.body,
   }));
 
@@ -197,7 +199,7 @@ export async function getLeagueTreaty() {
       slug: amendment.slug,
       op: amendment.op,
       targetArticleId: amendment.targetArticleId,
-      newHeading: amendment.newHeading,
+      newHeading: amendment.newHeading ? stripArticlePrefix(amendment.newHeading) : null,
       newBody: amendment.newBody,
       newOrder: amendment.newOrder,
       currentTargetOrder: amendment.targetArticleId ? currentOrderByArticleId.get(amendment.targetArticleId) ?? null : null,

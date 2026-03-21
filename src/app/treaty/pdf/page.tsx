@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { formatArticleHeading } from "@/utils/articleHeadings";
 import AutoPrint from "../AutoPrint";
 import { getLeagueTreaty } from "../data";
 
@@ -74,7 +75,7 @@ function ArticleBlock({ article }: { article: TreatyArticle }) {
   return (
     <section className="mb-[17pt] last:mb-0">
       <h2 className="text-[14pt] font-bold leading-[1.2] text-black">
-        {article.heading}
+        {formatArticleHeading(article.order, article.heading)}
       </h2>
       <div className="mt-1.5">
         <ArticleBody body={article.body} />

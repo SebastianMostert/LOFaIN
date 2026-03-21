@@ -1,4 +1,5 @@
 import { prisma } from "@/prisma";
+import { countEligibleVotingCountries } from "@/utils/country";
 const POLL_INTERVAL_MS = 1000 * 60 * 60; // 1 hour
 const NOTIFY_WINDOW_MS = 1000 * 60 * 60 * 24; // 24 hours
 
@@ -6,6 +7,8 @@ type FinalizeArgs = {
     id: string;
     threshold: number | null;
     eligibleCount: number | null;
+    opensAt?: Date | null;
+    closesAt?: Date | null;
     quorum?: number | null;
 };
 
@@ -20,7 +23,8 @@ export async function finalizeAmendment(a: FinalizeArgs) {
         counts[v.choice as "AYE" | "NAY" | "ABSTAIN" | "ABSENT"]++;
         if (v.choice === "NAY" && v.country.hasVeto) vetoers.push(v.country.name);
     }
-    const eligible = a.eligibleCount ?? (await prisma.country.count({ where: { isActive: true } }));
+    const eligibilityDate = a.opensAt ?? a.closesAt ?? new Date();
+    const eligible = a.eligibleCount ?? (await countEligibleVotingCountries(eligibilityDate));
     const threshold = a.threshold ?? 2 / 3;
     const needed = Math.ceil(eligible * threshold);
     const quorum = a.quorum ?? 0;
@@ -57,7 +61,7 @@ export async function closeExpiredAmendments(slug?: string) {
         : { status: "OPEN" as const, closesAt: { lte: now } };
     const due = await prisma.amendment.findMany({
         where,
-        select: { id: true, threshold: true, eligibleCount: true, quorum: true },
+        select: { id: true, threshold: true, eligibleCount: true, opensAt: true, closesAt: true, quorum: true },
     });
     await Promise.all(due.map(a => finalizeAmendment(a)));
 }

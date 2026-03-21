@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/prisma";
 import { auth } from "@/auth";
 import { closeExpiredAmendments } from "@/utils/amendments";
+import { countryHasVotingPowerAt } from "@/utils/country";
 
 export async function POST(req: Request, { params }: { params: Promise<{ slug: string }> }) {
     const awaitedParams = await params;
@@ -25,6 +26,9 @@ export async function POST(req: Request, { params }: { params: Promise<{ slug: s
 
     const now = new Date();
     if (a.opensAt && now < a.opensAt) return NextResponse.json({ error: "Voting not open yet" }, { status: 400 });
+    const eligibilityDate = a.opensAt ?? now;
+    const canVote = await countryHasVotingPowerAt(countryId, eligibilityDate);
+    if (!canVote) return NextResponse.json({ error: "Country is not eligible to vote on this amendment" }, { status: 403 });
 
     if (choice === "ABSENT") {
         await prisma.vote.delete({

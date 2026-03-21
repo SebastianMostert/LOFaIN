@@ -1,7 +1,7 @@
 import { readFile } from "node:fs/promises";
 import fontkit from "@pdf-lib/fontkit";
 import { PDFDocument, type PDFPage, type PDFFont } from "pdf-lib";
-import { toRoman } from "@/utils/roman-numerals";
+import { formatArticleHeading } from "@/utils/articleHeadings";
 
 type TreatyArticle = {
   id: string;
@@ -151,7 +151,7 @@ export async function generateTreatyPdf(treaty: TreatyData) {
     let localY = startY;
 
     ({ page: localPage, cursorY: localY } = ensureSpace(pdfDoc, localPage, localY, 40));
-    localPage.drawText(`Article ${toRoman(article.order)}. ${article.heading}`, {
+    localPage.drawText(formatArticleHeading(article.order, article.heading), {
       x: MARGIN_X,
       y: localY,
       font: bold,

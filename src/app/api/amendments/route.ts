@@ -2,6 +2,8 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/prisma";
 import { auth } from "@/auth";
+import { stripArticlePrefix } from "@/utils/articleHeadings";
+import { countEligibleVotingCountries } from "@/utils/country";
 import { amendmentSchema } from "@/utils/zodSchema";
 
 async function nextAmendmentSlug() {
@@ -52,10 +54,9 @@ export async function POST(req: Request) {
     const treaty = await prisma.treaty.findUnique({ where: { slug: treatySlug }, select: { id: true } });
     if (!treaty) return NextResponse.json({ error: "Treaty not found" }, { status: 404 });
 
-    const eligibleCount = await prisma.country.count({ where: { isActive: true } });
-    const slug = await nextAmendmentSlug();
-
     const now = new Date();
+    const eligibleCount = await countEligibleVotingCountries(now);
+    const slug = await nextAmendmentSlug();
     const closesAt = new Date(now.getTime() + 24 * 60 * 60 * 1000); // +24h
 
     const amendment = await prisma.amendment.create({
@@ -66,7 +67,7 @@ export async function POST(req: Request) {
             op,
             treatyId: treaty.id,
             targetArticleId: targetArticleId ?? null,
-            newHeading: newHeading ?? null,
+            newHeading: newHeading ? stripArticlePrefix(newHeading) : null,
             newBody: newBody ?? null,
             newOrder: newOrder ?? null,
             status: "OPEN",

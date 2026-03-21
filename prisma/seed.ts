@@ -11,6 +11,8 @@ const countrySeeds = [
     code: "fr",
     colorHex: "#3f5d45",
     isActive: true,
+    joinedAt: new Date("1878-11-29T12:00:00.000Z"),
+    leftAt: null,
     hasVeto: true,
   },
   {
@@ -19,6 +21,8 @@ const countrySeeds = [
     code: "it",
     colorHex: "#4f7055",
     isActive: true,
+    joinedAt: new Date("1878-11-29T12:00:00.000Z"),
+    leftAt: null,
     hasVeto: true,
   },
   {
@@ -27,6 +31,8 @@ const countrySeeds = [
     code: "pl",
     colorHex: "#6a3d3d",
     isActive: true,
+    joinedAt: new Date("1878-11-29T12:00:00.000Z"),
+    leftAt: null,
     hasVeto: false,
   },
   {
@@ -35,6 +41,8 @@ const countrySeeds = [
     code: "su",
     colorHex: "#6e2e2e",
     isActive: true,
+    joinedAt: new Date("1878-11-29T12:00:00.000Z"),
+    leftAt: null,
     hasVeto: true,
   },
   {
@@ -43,6 +51,8 @@ const countrySeeds = [
     code: "jp",
     colorHex: "#7c3f3f",
     isActive: true,
+    joinedAt: new Date("1878-11-29T12:00:00.000Z"),
+    leftAt: null,
     hasVeto: false,
   },
   {
@@ -51,6 +61,8 @@ const countrySeeds = [
     code: "mx",
     colorHex: "#556b4d",
     isActive: false,
+    joinedAt: new Date("1878-11-29T12:00:00.000Z"),
+    leftAt: new Date("1903-03-14T12:00:00.000Z"),
     hasVeto: false,
   },
 ];
@@ -75,6 +87,8 @@ async function main() {
           code: country.code,
           colorHex: country.colorHex,
           isActive: country.isActive,
+          joinedAt: country.joinedAt,
+          leftAt: country.leftAt,
           hasVeto: country.hasVeto,
         },
         create: country,

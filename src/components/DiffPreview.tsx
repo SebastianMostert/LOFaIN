@@ -1,5 +1,7 @@
 "use client";
 
+import { formatArticleHeading, stripArticlePrefix } from "@/utils/articleHeadings";
+
 type Article = { id: string; order: number; heading: string; body: string };
 
 type LineKind = "eq" | "add" | "del";
@@ -13,16 +15,27 @@ type DiffLine = {
 export default function DiffPreview({
   op,
   targetArticle,
+  newOrder,
   newHeading,
   newBody,
 }: {
   op: "ADD" | "EDIT" | "REMOVE";
   targetArticle: Article | null;
+  newOrder?: number | null;
   newHeading: string;
   newBody: string;
 }) {
   const beforeText = op === "ADD" ? "" : (targetArticle?.body ?? "");
   const afterText = op === "REMOVE" ? "" : newBody;
+  const beforeHeading = op === "EDIT" && targetArticle ? formatArticleHeading(targetArticle.order, targetArticle.heading) : "-";
+  const afterHeading =
+    op === "ADD"
+      ? newOrder
+        ? formatArticleHeading(newOrder, newHeading)
+        : stripArticlePrefix(newHeading) || <span className="text-stone-500">No new heading</span>
+      : op === "EDIT" && targetArticle
+        ? formatArticleHeading(targetArticle.order, newHeading || targetArticle.heading)
+        : stripArticlePrefix(newHeading) || <span className="text-stone-500">No new heading</span>;
 
   const before = splitLines(beforeText);
   const after = splitLines(afterText);
@@ -35,10 +48,10 @@ export default function DiffPreview({
           <div className="px-4 py-2 uppercase tracking-wide text-stone-400">Heading (before)</div>
           <div className="px-4 py-2 uppercase tracking-wide text-stone-400">Heading (after)</div>
           <div className="truncate bg-stone-900 px-4 py-2 text-stone-300 sm:border-r sm:border-stone-800">
-            {op === "EDIT" ? (targetArticle?.heading ?? "-") : "-"}
+            {beforeHeading}
           </div>
           <div className="truncate bg-stone-900 px-4 py-2 text-stone-100">
-            {newHeading || <span className="text-stone-500">No new heading</span>}
+            {afterHeading}
           </div>
         </div>
       )}

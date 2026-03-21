@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/prisma";
 import { auth } from "@/auth";
 import { closeExpiredAmendments } from "@/utils/amendments";
+import { stripArticlePrefix } from "@/utils/articleHeadings";
 
 export async function POST(req: Request, { params }: { params: Promise<{ slug: string }> }) {
     const awaitedParams = await params;
@@ -24,7 +25,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ slug: s
         const order = a.newOrder ?? (await prisma.article.count({ where: { treatyId: a.treatyId } })) + 1;
 
         await prisma.article.create({
-            data: { treatyId: a.treatyId, order, heading: a.newHeading, body: a.newBody },
+            data: { treatyId: a.treatyId, order, heading: stripArticlePrefix(a.newHeading), body: a.newBody },
         });
     } else if (a.op === "EDIT") {
         if (!a.targetArticleId || (!a.newHeading && !a.newBody))
@@ -33,7 +34,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ slug: s
         await prisma.article.update({
             where: { id: a.targetArticleId },
             data: {
-                heading: a.newHeading ?? undefined,
+                heading: a.newHeading ? stripArticlePrefix(a.newHeading) : undefined,
                 body: a.newBody ?? undefined,
             },
         });

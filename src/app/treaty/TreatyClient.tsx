@@ -3,6 +3,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { epunda } from "@/app/fonts";
+import { formatArticleHeading, stripArticlePrefix } from "@/utils/articleHeadings";
 import { formatDate } from "@/utils/formatting";
 import { toRoman } from "@/utils/roman-numerals";
 import DownloadPdfButton from "./DownloadPdfButton";
@@ -141,7 +142,7 @@ function TOC({
             return (
               <li key={article.id}>
                 <a href={`#${id}`} className={linkClasses(id)}>
-                  {article.heading}
+                  {formatArticleHeading(article.order, article.heading)}
                 </a>
               </li>
             );
@@ -285,7 +286,7 @@ export default function TreatyClient({
     if (!normalized) return selectedSnapshot.articles;
     return selectedSnapshot.articles.filter(
       (article) =>
-        article.heading.toLowerCase().includes(normalized) ||
+                        stripArticlePrefix(article.heading).toLowerCase().includes(normalized) ||
         article.body.toLowerCase().includes(normalized),
     );
   }, [normalized, selectedSnapshot]);
@@ -444,13 +445,13 @@ export default function TreatyClient({
                   >
                     <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
                       <h3 className={`${epunda.className} text-lg font-semibold text-stone-100`}>
-                        {article.heading}
+                        {formatArticleHeading(article.order, article.heading)}
                       </h3>
                       <div className="flex items-center gap-3 text-xs uppercase tracking-[0.2em] text-stone-400">
                         <a href={`#${anchor}`} className="hover:text-stone-200">
                           Deep link
                         </a>
-                        <Link href={`/amendments?q=${encodeURIComponent(article.heading)}`} className="hover:text-stone-200">
+                        <Link href={`/amendments?q=${encodeURIComponent(stripArticlePrefix(article.heading))}`} className="hover:text-stone-200">
                           Related amendments
                         </Link>
                       </div>

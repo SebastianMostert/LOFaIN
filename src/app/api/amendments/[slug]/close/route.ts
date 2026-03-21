@@ -11,7 +11,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ slug: s
 
     const a = await prisma.amendment.findUnique({
         where: { slug: awaitedParams.slug },
-        select: { id: true, threshold: true, eligibleCount: true, quorum: true },
+        select: { id: true, threshold: true, eligibleCount: true, opensAt: true, closesAt: true, quorum: true },
     });
     if (!a) return NextResponse.json({ error: "Amendment not found" }, { status: 404 });
 

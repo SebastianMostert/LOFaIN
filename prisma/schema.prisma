@@ -50,6 +50,8 @@ model Country {
   code     String? // e.g., "FRA", "USSR", "ITA"
   colorHex String? // muted accent for UI
   isActive Boolean @default(true)
+  joinedAt DateTime?
+  leftAt   DateTime?
 
   // Can they veto
   hasVeto Boolean @default(false)

@@ -10,6 +10,8 @@ import FlagImage from "@/components/FlagImage";
 import SlideOutVoteTab from "@/components/Vote/SlideOutVoteTab";
 import { prisma } from "@/prisma";
 import { closeExpiredAmendments } from "@/utils/amendments";
+import { formatArticleHeading, stripArticlePrefix } from "@/utils/articleHeadings";
+import { getEligibleVotingCountries } from "@/utils/country";
 import { formatDateTime, formatDeadline } from "@/utils/formatting";
 import { toRoman } from "@/utils/roman-numerals";
 import Link from "next/link";
@@ -76,12 +78,14 @@ function labelForOp(op: "ADD" | "EDIT" | "REMOVE") {
 function AmendmentContent({
   status,
   op,
+  newOrder,
   targetArticle,
   newHeading,
   newBody,
 }: {
   status: "OPEN" | "CLOSED" | string;
   op: "ADD" | "EDIT" | "REMOVE";
+  newOrder: number | null;
   targetArticle: { id: string; order: number; heading: string; body: string } | null;
   newHeading: string;
   newBody: string;
@@ -91,6 +95,7 @@ function AmendmentContent({
       <DiffPreview
         op={op}
         targetArticle={targetArticle}
+        newOrder={newOrder}
         newHeading={newHeading}
         newBody={newBody}
       />
@@ -104,7 +109,7 @@ function AmendmentContent({
           Proposed removal of{" "}
           {targetArticle ? (
             <>
-              Article {targetArticle.order}: <span className="font-medium text-rose-100">{targetArticle.heading}</span>
+              <span className="font-medium text-rose-100">{formatArticleHeading(targetArticle.order, targetArticle.heading)}</span>
             </>
           ) : (
             "the specified article"
@@ -128,8 +133,11 @@ function AmendmentContent({
     <SectionCard title="Proposed Amendment Text">
       {finalHeading && (
         <h4 className="text-base font-semibold text-stone-100">
-          {targetArticle ? `Article ${targetArticle.order}: ` : ""}
-          {finalHeading}
+          {targetArticle
+            ? formatArticleHeading(targetArticle.order, finalHeading)
+            : newOrder
+              ? formatArticleHeading(newOrder, finalHeading)
+              : stripArticlePrefix(finalHeading)}
         </h4>
       )}
       {finalBody ? (
@@ -169,6 +177,7 @@ export default async function AmendmentPage({
       op: true,
       newHeading: true,
       newBody: true,
+      newOrder: true,
       targetArticleId: true,
       votes: { select: { choice: true, countryId: true } },
       proposerUser: { select: { id: true, name: true } },
@@ -189,11 +198,7 @@ export default async function AmendmentPage({
       })
     : null;
 
-  const countries = await prisma.country.findMany({
-    where: { isActive: true },
-    orderBy: { name: "asc" },
-    select: { id: true, name: true, slug: true, code: true, hasVeto: true },
-  });
+  const countries = await getEligibleVotingCountries(amendment.opensAt ?? amendment.closesAt ?? new Date());
 
   const byCountry = new Map<string, Choice>();
   amendment.votes.forEach((vote) => byCountry.set(vote.countryId, vote.choice as Choice));
@@ -285,6 +290,8 @@ export default async function AmendmentPage({
         result={amendment.result ?? null}
       />
 
+      <VoteSummary countries={countries} byCountry={byCountry} />
+
       <section className="mt-10 grid grid-cols-1 gap-8 xl:grid-cols-[minmax(0,1fr)_340px]">
         <div className="space-y-6">
           {amendment.rationale && (
@@ -306,18 +313,30 @@ export default async function AmendmentPage({
                       href={articleAnchor(targetArticle.order)}
                       className="text-amber-200 hover:text-amber-100"
                     >
-                      Article {targetArticle.order}: {targetArticle.heading}
+                      {formatArticleHeading(targetArticle.order, targetArticle.heading)}
                     </Link>
                   }
                 />
               ) : null}
-              {amendment.newHeading && <Detail label="New Heading" value={amendment.newHeading} />}
+              {amendment.newHeading && (
+                <Detail
+                  label="New Heading"
+                  value={
+                    targetArticle
+                      ? formatArticleHeading(targetArticle.order, amendment.newHeading)
+                      : amendment.newOrder
+                        ? formatArticleHeading(amendment.newOrder, amendment.newHeading)
+                        : stripArticlePrefix(amendment.newHeading)
+                  }
+                />
+              )}
               {amendment.opensAt && <Detail label="Voting Opened" value={formatDateTime(amendment.opensAt)} />}
             </div>
 
             <AmendmentContent
               status={amendment.status}
               op={amendment.op as "ADD" | "EDIT" | "REMOVE"}
+              newOrder={amendment.newOrder ?? null}
               targetArticle={
                 targetArticle
                   ? { id: targetArticle.id, order: targetArticle.order, heading: targetArticle.heading, body: targetArticle.body }
@@ -330,7 +349,6 @@ export default async function AmendmentPage({
         </div>
 
         <aside className="space-y-6">
-          <VoteSummary countries={countries} byCountry={byCountry} />
           <SectionCard title="Voting Window">
             <ul className="space-y-2 text-sm">
               <li>Opens: {formatDateTime(amendment.opensAt)}</li>
