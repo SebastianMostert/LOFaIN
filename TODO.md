@@ -55,3 +55,4 @@ Continue work on the discussions page
 The chair still needs the power to:
 - Nudge a delegate to finish speaking
 - Stop a delegate from speaking
+- Chair keeps chair until the session is over (if France starts the debate as chair, the debate shall also be ended by them, even if their term is over)

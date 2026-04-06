@@ -1,6 +1,6 @@
 import Link from "next/link";
 import Image from "next/image";
-import { auth, signOut } from "@/auth";
+import { auth } from "@/auth";
 import { prisma } from "@/prisma";
 import NavButton from "./NavButton";
 import SignInButton from "./SignInButton";
@@ -22,15 +22,9 @@ const LogoPart = ({ size }: { size: number }) => {
   );
 };
 
-const FlagSignOutButton = ({ size, countryCode }: { size: number; countryCode: string }) => {
+const FlagProfileLink = ({ size, countryCode }: { size: number; countryCode: string }) => {
   return (
-    <form
-      action={async () => {
-        "use server";
-        await signOut();
-      }}
-    >
-      <button type="submit">
+    <Link href="/members/me" aria-label="Open your country profile">
         <Image
           src={`/flags/btn/${countryCode.toLocaleLowerCase()}.png`}
           alt="Country Flag"
@@ -38,8 +32,7 @@ const FlagSignOutButton = ({ size, countryCode }: { size: number; countryCode: s
           height={16 * size}
           className="inline-block h-auto w-[56px] rounded-[2px] sm:w-[68px] lg:w-[84px]"
         />
-      </button>
-    </form>
+    </Link>
   );
 };
 
@@ -50,7 +43,7 @@ type LinkItem = {
 };
 
 const Links: LinkItem[] = [
-  { href: "/treaty", label: "Treaty", auth: false },
+  { href: "/documents", label: "Documents", auth: false },
   { href: "/amendments", label: "Amendments", auth: true },
   { href: "/chair", label: "Chair", auth: false },
   { href: "/members", label: "Members", auth: false },
@@ -98,14 +91,10 @@ export default async function Header() {
           {Links.filter((link) => {
             if (link.auth && !user) return false;
             return true;
-          }).map((link, index) => {
-            const isLogout = link.href === "/logout";
-            return isLogout ? (
-              <FlagSignOutButton key={index} size={3.5} countryCode={countryCode} />
-            ) : (
-              <NavButton key={index} href={link.href} label={link.label} />
-            );
-          })}
+          }).map((link, index) => (
+            <NavButton key={index} href={link.href} label={link.label} />
+          ))}
+          {user && <FlagProfileLink size={3.5} countryCode={countryCode} />}
           {!user && <SignInButton />}
         </nav>
       </div>

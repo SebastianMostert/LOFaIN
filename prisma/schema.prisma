@@ -49,6 +49,11 @@ model Country {
   slug     String  @unique
   code     String? // e.g., "FRA", "USSR", "ITA"
   colorHex String? // muted accent for UI
+  summary  String?
+  capital  String?
+  governmentType String?
+  headOfState String?
+  foreignMinister String?
   isActive Boolean @default(true)
   joinedAt DateTime?
   leftAt   DateTime?
@@ -171,6 +176,23 @@ model Treaty {
   updatedAt DateTime  @updatedAt
 
   Amendment Amendment[]
+}
+
+enum LeagueDocumentType {
+  DEBATE_RULES
+}
+
+model LeagueDocument {
+  id        String             @id @default(auto()) @map("_id") @db.ObjectId
+  title     String
+  slug      String             @unique
+  type      LeagueDocumentType @unique
+  adoptedAt DateTime?
+  summary   String?
+  preamble  String?
+  content   Json
+  createdAt DateTime           @default(now())
+  updatedAt DateTime           @updatedAt
 }
 
 model Article {
@@ -310,6 +332,8 @@ enum SanctionType {
 
 enum ChairActionType {
   LOG_NOTE
+  OPEN_DEBATE
+  CLOSE_DEBATE
   LOCK_THREAD
   UNLOCK_THREAD
   PIN_THREAD
@@ -320,11 +344,17 @@ enum ChairActionType {
   LIFT_SANCTION
 }
 
+enum DiscussionDebatePhase {
+  INFORMAL_CAUCUS
+  FORMAL_DEBATE
+}
+
 model DiscussionThread {
   id                 String    @id @default(auto()) @map("_id") @db.ObjectId
   slug               String    @unique
   title              String
   summary            String?
+  debatePhase        DiscussionDebatePhase @default(INFORMAL_CAUCUS)
   isLocked           Boolean   @default(false)
   isPinned           Boolean   @default(false)
   isArchived         Boolean   @default(false)

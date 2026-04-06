@@ -1,1 +1,1 @@
-export const SPEAKER_RECOGNITION_MS = 60_000;
+export const SPEAKER_RECOGNITION_MS = 5_000//60_000;

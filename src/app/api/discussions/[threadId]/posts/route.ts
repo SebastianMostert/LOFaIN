@@ -2,6 +2,11 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/prisma";
 import { ApiError, requireAuthContext } from "@/utils/api/guards";
 import { broadcastDiscussionEvent } from "@/utils/discussionEvents";
+import {
+    discussionPostPayloadSelect,
+    toDiscussionPostPayload,
+    toDiscussionPostPayloads,
+} from "@/utils/discussionPostPayload";
 import z from "zod";
 
 const createPostSchema = z.object({
@@ -29,24 +34,10 @@ export async function GET(
         const posts = await prisma.discussionPost.findMany({
             where: { threadId: thread.id },
             orderBy: { createdAt: "asc" },
-            select: {
-                id: true,
-                body: true,
-                parentPostId: true,
-                isEdited: true,
-                isDeleted: true,
-                deletedAt: true,
-                editedAt: true,
-                createdAt: true,
-                updatedAt: true,
-                authorUser: { select: { id: true, name: true, image: true } },
-                authorCountry: {
-                    select: { id: true, name: true, slug: true, code: true, colorHex: true },
-                },
-            },
+            select: discussionPostPayloadSelect,
         });
 
-        return NextResponse.json({ posts });
+        return NextResponse.json({ posts: await toDiscussionPostPayloads(posts) });
     } catch (error) {
         if (error instanceof ApiError) {
             return NextResponse.json({ error: error.message }, { status: error.status });
@@ -102,21 +93,7 @@ export async function POST(
                 authorCountryId: country.id,
                 authorUserId: userId ?? null,
             },
-            select: {
-                id: true,
-                body: true,
-                parentPostId: true,
-                isEdited: true,
-                isDeleted: true,
-                deletedAt: true,
-                editedAt: true,
-                createdAt: true,
-                updatedAt: true,
-                authorUser: { select: { id: true, name: true, image: true } },
-                authorCountry: {
-                    select: { id: true, name: true, slug: true, code: true, colorHex: true },
-                },
-            },
+            select: discussionPostPayloadSelect,
         });
 
         await prisma.discussionThread.update({
@@ -124,18 +101,14 @@ export async function POST(
             data: { lastPostAt: new Date() },
         });
 
+        const payload = await toDiscussionPostPayload(post);
+
         await broadcastDiscussionEvent(thread.id, {
             type: "post.created",
-            post: {
-                ...post,
-                deletedAt: post.deletedAt ? post.deletedAt.toISOString() : null,
-                editedAt: post.editedAt ? post.editedAt.toISOString() : null,
-                createdAt: post.createdAt.toISOString(),
-                updatedAt: post.updatedAt.toISOString(),
-            },
+            post: payload,
         });
 
-        return NextResponse.json({ post }, { status: 201 });
+        return NextResponse.json({ post: payload }, { status: 201 });
     } catch (error) {
         if (error instanceof ApiError) {
             return NextResponse.json({ error: error.message }, { status: error.status });

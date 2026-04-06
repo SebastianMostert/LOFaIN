@@ -1,3 +1,4 @@
+import { Prisma } from "@prisma/client";
 import { prisma } from "@/prisma";
 import fs from "fs";
 import path from "path";
@@ -120,6 +121,16 @@ async function main() {
     preamble?: string;
     articles: { order: number; heading: string; body: string }[];
   };
+  const debateRulesPath = path.join(__dirname, "debate-rules.json");
+  const debateRules = JSON.parse(fs.readFileSync(debateRulesPath, "utf-8")) as {
+    title: string;
+    slug: string;
+    type: "DEBATE_RULES";
+    adoptedAt?: string;
+    summary?: string;
+    preamble?: string;
+    titles: unknown;
+  };
 
   const treaty = await prisma.treaty.upsert({
     where: { slug: data.slug },
@@ -155,6 +166,29 @@ async function main() {
   }
 
   console.log(`Seeded treaty "${treaty.title}" with ${data.articles.length} articles.`);
+
+  await prisma.leagueDocument.upsert({
+    where: { slug: debateRules.slug },
+    update: {
+      title: debateRules.title,
+      type: debateRules.type,
+      adoptedAt: debateRules.adoptedAt ? new Date(debateRules.adoptedAt) : null,
+      summary: debateRules.summary ?? null,
+      preamble: debateRules.preamble ?? null,
+      content: debateRules.titles as Prisma.InputJsonValue,
+    },
+    create: {
+      title: debateRules.title,
+      slug: debateRules.slug,
+      type: debateRules.type,
+      adoptedAt: debateRules.adoptedAt ? new Date(debateRules.adoptedAt) : null,
+      summary: debateRules.summary ?? null,
+      preamble: debateRules.preamble ?? null,
+      content: debateRules.titles as Prisma.InputJsonValue,
+    },
+  });
+
+  console.log(`Seeded debate rules document "${debateRules.title}".`);
 
   const article2 = articlesByOrder.get(2)!;
   const article4 = articlesByOrder.get(4)!;

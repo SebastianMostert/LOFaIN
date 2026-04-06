@@ -1,6 +1,7 @@
 import type * as Party from "partykit/server";
 
 import {
+    type DiscussionChairNotice,
     type DiscussionClientEvent,
     type DiscussionParticipant,
     type DiscussionRoomState,
@@ -110,6 +111,24 @@ export default class Server implements Party.Server {
                     sender.send(JSON.stringify(this.asEvent("snapshot")));
                 }
                 break;
+            case "queue.nudge":
+                if (!this.canModerate(actor, parsed.devOverrideModeration)) {
+                    sender.send(JSON.stringify({ type: "error", message: "Chair privileges required" } satisfies DiscussionServerEvent));
+                    return;
+                }
+                if (!(await this.nudgeSpeaker(parsed.countryId))) {
+                    sender.send(JSON.stringify(this.asEvent("snapshot")));
+                }
+                break;
+            case "queue.stop":
+                if (!this.canModerate(actor, parsed.devOverrideModeration)) {
+                    sender.send(JSON.stringify({ type: "error", message: "Chair privileges required" } satisfies DiscussionServerEvent));
+                    return;
+                }
+                if (!(await this.stopSpeaker(parsed.countryId))) {
+                    sender.send(JSON.stringify(this.asEvent("snapshot")));
+                }
+                break;
             default:
                 sender.send(JSON.stringify({ type: "error", message: "Unsupported event" } satisfies DiscussionServerEvent));
         }
@@ -140,7 +159,9 @@ export default class Server implements Party.Server {
             const body = await req.json() as
                 | { type: "queue.request"; actor: ConnectionState }
                 | { type: "queue.recognize"; actor: ConnectionState; countryId?: string }
-                | { type: "queue.skip"; actor: ConnectionState; countryId?: string };
+                | { type: "queue.skip"; actor: ConnectionState; countryId?: string }
+                | { type: "queue.nudge"; actor: ConnectionState; countryId?: string }
+                | { type: "queue.stop"; actor: ConnectionState; countryId?: string };
 
             switch (body.type) {
                 case "queue.request":
@@ -153,6 +174,14 @@ export default class Server implements Party.Server {
                 case "queue.skip":
                     if (!body.actor.canModerate) return new Response("Forbidden", { status: 403 });
                     await this.skipSpeaker(body.countryId);
+                    break;
+                case "queue.nudge":
+                    if (!body.actor.canModerate) return new Response("Forbidden", { status: 403 });
+                    await this.nudgeSpeaker(body.countryId);
+                    break;
+                case "queue.stop":
+                    if (!body.actor.canModerate) return new Response("Forbidden", { status: 403 });
+                    await this.stopSpeaker(body.countryId);
                     break;
                 default:
                     return new Response("Unsupported action", { status: 400 });
@@ -209,6 +238,13 @@ export default class Server implements Party.Server {
         this.room.broadcast(JSON.stringify(this.asEvent("state")));
     }
 
+    private broadcastNotice(notice: DiscussionChairNotice) {
+        this.room.broadcast(JSON.stringify({
+            type: "chair.notice",
+            notice,
+        } satisfies DiscussionServerEvent));
+    }
+
     private async enqueueSpeaker(actor: DiscussionParticipant) {
         const alreadyQueued = this.queuedCountries.some((entry) => entry.countryId === actor.countryId);
         const alreadyRecognized = this.recognizedSpeaker?.countryId === actor.countryId;
@@ -259,6 +295,36 @@ export default class Server implements Party.Server {
 
         await this.persistState();
         this.broadcastState();
+        return true;
+    }
+
+    private async nudgeSpeaker(countryId?: string) {
+        if (!this.recognizedSpeaker) return false;
+        if (countryId && this.recognizedSpeaker.countryId !== countryId) return false;
+
+        this.broadcastNotice({
+            action: "NUDGE_SPEAKER",
+            target: this.recognizedSpeaker,
+            issuedAt: new Date().toISOString(),
+        });
+        return true;
+    }
+
+    private async stopSpeaker(countryId?: string) {
+        if (!this.recognizedSpeaker) return false;
+        if (countryId && this.recognizedSpeaker.countryId !== countryId) return false;
+
+        const stoppedSpeaker = this.recognizedSpeaker;
+        this.recognizedSpeaker = null;
+        this.recognizedAt = null;
+
+        await this.persistState();
+        this.broadcastState();
+        this.broadcastNotice({
+            action: "STOP_SPEAKER",
+            target: stoppedSpeaker,
+            issuedAt: new Date().toISOString(),
+        });
         return true;
     }
 }

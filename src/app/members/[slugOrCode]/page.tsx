@@ -116,10 +116,25 @@ export default async function PublicCountryPage({
           </div>
 
           <dl className="mt-6 grid gap-3 sm:grid-cols-3">
-            <StatCard label="Date joined" value={formatDate(country.createdAt)} />
+            <StatCard label="Date joined" value={formatDate(country.joinedAt ?? country.createdAt)} />
             <StatCard label="Delegates" value={String(country.users.length)} />
             <StatCard label="Status" value={isChair ? "Chairing member" : membershipStatus} />
           </dl>
+
+          {(country.summary || country.capital || country.governmentType || country.headOfState || country.foreignMinister) && (
+            <div className="mt-8 rounded-2xl border border-stone-800 bg-stone-950/50 p-5">
+              <h3 className={`${epunda.className} text-lg font-semibold text-stone-100`}>Country Profile</h3>
+              {country.summary && (
+                <p className="mt-3 whitespace-pre-wrap text-sm leading-7 text-stone-300">{country.summary}</p>
+              )}
+              <dl className="mt-4 grid gap-3 sm:grid-cols-2">
+                {country.capital && <StatCard label="Capital" value={country.capital} />}
+                {country.governmentType && <StatCard label="Government" value={country.governmentType} />}
+                {country.headOfState && <StatCard label="Head of state" value={country.headOfState} />}
+                {country.foreignMinister && <StatCard label="Foreign minister" value={country.foreignMinister} />}
+              </dl>
+            </div>
+          )}
 
           <div className="mt-8">
             <h3 className={`${epunda.className} text-lg font-semibold`}>Delegates</h3>
@@ -167,7 +182,7 @@ export default async function PublicCountryPage({
           <section className="rounded-2xl border border-stone-800 bg-stone-950/60 p-4">
             <div className="text-xs uppercase tracking-[0.24em] text-stone-400">Quick Facts</div>
             <ul className="mt-3 space-y-2 text-sm text-stone-300">
-              <li>Joined the League on {formatDate(country.createdAt)}.</li>
+              <li>Joined the League on {formatDate(country.joinedAt ?? country.createdAt)}.</li>
               <li>{country.isActive ? "Currently sits as an active League member." : "Previously sat as a League member and is no longer active."}</li>
               <li>{country.hasVeto ? "Can exercise veto rights on qualifying matters." : "Does not currently hold veto rights."}</li>
               <li>{isChair ? "Currently holds the chair." : "Is not the current chair."}</li>

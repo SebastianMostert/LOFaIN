@@ -1,7 +1,10 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/prisma";
 import { ApiError, requireAuthContext } from "@/utils/api/guards";
+import { broadcastDiscussionEvent } from "@/utils/discussionEvents";
 import { getChairAssignmentForMotion } from "@/utils/chair";
+import { assertDebateQuorumForThread } from "@/utils/discussionQuorum";
+import { motionPayloadSelect, toDiscussionMotionPayload } from "@/utils/motionPayload";
 import z from "zod";
 
 const ruleSchema = z.object({
@@ -21,7 +24,7 @@ export async function POST(req: Request) {
 
         const motion = await prisma.modMotion.findUnique({
             where: { id: parsed.data.motionId },
-            select: { id: true },
+            select: { id: true, targetThreadId: true },
         });
 
         if (!motion) {
@@ -32,10 +35,18 @@ export async function POST(req: Request) {
         if (chairAssignment.effectiveChair.id !== country.id) {
             throw new ApiError(403, "Only the presiding chair may rule on this motion");
         }
+        if (!motion.targetThreadId) {
+            throw new ApiError(409, "This motion is not attached to an active debate thread");
+        }
+        await assertDebateQuorumForThread(motion.targetThreadId);
 
         const now = new Date();
 
         const updatedMotion = await prisma.$transaction(async (tx) => {
+            const current = await tx.modMotion.findUnique({
+                where: { id: motion.id },
+                select: { context: true },
+            });
             const updated = await tx.modMotion.update({
                 where: { id: motion.id },
                 data: {
@@ -43,6 +54,13 @@ export async function POST(req: Request) {
                     closedAt: now,
                     resolvedAt: now,
                     resolutionNote: parsed.data.note ?? null,
+                    context: parsed.data.outcome === "FAILED"
+                        ? {
+                            ...(current?.context && typeof current.context === "object" ? current.context as Record<string, unknown> : {}),
+                            deniedByChairId: country.id,
+                            deniedReason: parsed.data.note ?? "Denied by chair",
+                          }
+                        : undefined,
                 },
             });
 
@@ -62,10 +80,25 @@ export async function POST(req: Request) {
                 },
             });
 
-            return updated;
+            return tx.modMotion.findUnique({
+                where: { id: updated.id },
+                select: motionPayloadSelect,
+            });
         });
 
-        return NextResponse.json({ motion: updatedMotion });
+        if (!updatedMotion) {
+            throw new ApiError(404, "Motion not found after ruling");
+        }
+
+        const payload = toDiscussionMotionPayload(updatedMotion);
+        if (payload.targetThreadId) {
+            await broadcastDiscussionEvent(payload.targetThreadId, {
+                type: "motion.updated",
+                motion: payload,
+            });
+        }
+
+        return NextResponse.json({ motion: payload });
     } catch (error) {
         if (error instanceof ApiError) {
             return NextResponse.json({ error: error.message }, { status: error.status });

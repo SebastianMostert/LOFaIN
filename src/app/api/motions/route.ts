@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/prisma";
 import { ApiError, requireAuthContext } from "@/utils/api/guards";
+import { broadcastDiscussionEvent } from "@/utils/discussionEvents";
+import { MOTION_AUTO_PASS_DELAY_MS, MOTION_LAPSE_DELAY_MS } from "@/utils/motionLifecycle";
+import { getMotionFormalWording, motionPayloadSelect, toDiscussionMotionPayload } from "@/utils/motionPayload";
 import z from "zod";
 
 const createMotionSchema = z.object({
@@ -38,11 +41,15 @@ export async function POST(req: Request) {
         if (targetThreadId) {
             const thread = await prisma.discussionThread.findUnique({
                 where: { id: targetThreadId },
-                select: { id: true },
+                select: { id: true, debatePhase: true },
             });
 
             if (!thread) {
                 throw new ApiError(404, "Target thread not found");
+            }
+
+            if (thread.debatePhase !== "FORMAL_DEBATE") {
+                throw new ApiError(409, "Motions are unavailable during informal caucus");
             }
         }
 
@@ -72,6 +79,14 @@ export async function POST(req: Request) {
             }
         }
 
+        const submittedAt = new Date();
+        const expiresAt = new Date(submittedAt.getTime() + MOTION_LAPSE_DELAY_MS);
+        const formalWording = getMotionFormalWording(
+            country.name,
+            parsed.data.title,
+            parsed.data.rationale,
+        );
+
         const motion = await prisma.modMotion.create({
             data: {
                 type: parsed.data.type,
@@ -79,17 +94,33 @@ export async function POST(req: Request) {
                 title: parsed.data.title,
                 description: parsed.data.description ?? null,
                 rationale: parsed.data.rationale ?? null,
-                context: parsed.data.context ?? null,
+                context: {
+                    ...(parsed.data.context && typeof parsed.data.context === "object" ? parsed.data.context as Record<string, unknown> : {}),
+                    formalWording,
+                    chatMessageId: crypto.randomUUID(),
+                    autoPassDelayMs: MOTION_AUTO_PASS_DELAY_MS,
+                    expiresAt: expiresAt.toISOString(),
+                },
                 targetThreadId: parsed.data.targetThreadId ?? null,
                 targetPostId: parsed.data.targetPostId ?? null,
                 targetCountryId: parsed.data.targetCountryId ?? null,
                 createdByCountryId: country.id,
                 createdByUserId: userId ?? null,
-                submittedAt: new Date(),
+                submittedAt,
             },
+            select: motionPayloadSelect,
         });
 
-        return NextResponse.json({ motion }, { status: 201 });
+        const payload = toDiscussionMotionPayload(motion);
+
+        if (motion.targetThreadId) {
+            await broadcastDiscussionEvent(motion.targetThreadId, {
+                type: "motion.created",
+                motion: payload,
+            });
+        }
+
+        return NextResponse.json({ motion: payload }, { status: 201 });
     } catch (error) {
         if (error instanceof ApiError) {
             return NextResponse.json({ error: error.message }, { status: error.status });

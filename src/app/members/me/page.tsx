@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { auth, getSignInPath } from "@/auth";
 import { epunda } from "@/app/fonts";
 import FlagImage from "@/components/FlagImage";
+import CountryProfileEditor from "@/components/members/CountryProfileEditor";
 import { getCurrentChairAssignment } from "@/utils/chair";
 import { getCountry } from "@/utils/country";
 import { formatDate } from "@/utils/formatting";
@@ -69,7 +70,7 @@ export default async function MyCountryPage() {
 
   return (
     <section className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
-      <article className="overflow-hidden rounded-2xl border border-stone-800 bg-stone-900">
+      <article className="overflow-hidden rounded-[2rem] border border-stone-800 bg-[linear-gradient(180deg,rgba(28,25,23,0.96),rgba(17,24,39,0.92))] shadow-[0_24px_80px_rgba(0,0,0,0.28)]">
         <div
           className="h-2 w-full"
           style={{ background: country.colorHex ?? "#49423a" }}
@@ -108,9 +109,25 @@ export default async function MyCountryPage() {
           </div>
 
           <div className="mt-6 grid gap-3 sm:grid-cols-3">
-            <Metric label="Date joined" value={formatDate(country.createdAt)} />
+            <Metric label="Date joined" value={formatDate(country.joinedAt ?? country.createdAt)} />
             <Metric label="Delegates" value={String(country.users.length)} />
             <Metric label="Profile route" value={`/members/${country.slug}`} />
+          </div>
+
+          <div className="mt-8">
+            <CountryProfileEditor
+              initialCountry={{
+                name: country.name,
+                slug: country.slug,
+                code: country.code ?? null,
+                colorHex: country.colorHex ?? null,
+                summary: country.summary ?? null,
+                capital: country.capital ?? null,
+                governmentType: country.governmentType ?? null,
+                headOfState: country.headOfState ?? null,
+                foreignMinister: country.foreignMinister ?? null,
+              }}
+            />
           </div>
 
           <div className="mt-8">
@@ -145,7 +162,7 @@ export default async function MyCountryPage() {
       </article>
 
       <aside className="space-y-4">
-        <div className="rounded-2xl border border-stone-800 bg-stone-900 p-4">
+        <div className="rounded-[1.5rem] border border-stone-800 bg-stone-900 p-4">
           <div className="text-xs uppercase tracking-[0.24em] text-stone-400">Public Link</div>
           <Link
             href={`/members/${country.slug}`}
@@ -154,7 +171,7 @@ export default async function MyCountryPage() {
             View public profile
           </Link>
         </div>
-        <div className="rounded-2xl border border-stone-800 bg-stone-900 p-4">
+        <div className="rounded-[1.5rem] border border-stone-800 bg-stone-900 p-4">
           <div className="text-xs uppercase tracking-[0.24em] text-stone-400">Accent</div>
           <div
             className="mt-3 h-12 w-full rounded-xl border border-stone-800"
@@ -162,10 +179,10 @@ export default async function MyCountryPage() {
             title={country.colorHex ?? "default"}
           />
           <p className="mt-3 text-sm text-stone-300">
-            Use this profile as the private landing page for your delegation.
+            Use this page to manage the public profile for your delegation.
           </p>
         </div>
-        <div className="rounded-2xl border border-stone-800 bg-stone-900 p-4">
+        <div className="rounded-[1.5rem] border border-stone-800 bg-stone-900 p-4">
           <div className="text-xs uppercase tracking-[0.24em] text-stone-400">Chair Rotation</div>
           <p className="mt-3 text-sm text-stone-300">
             Current chair: <span className="font-medium text-stone-100">{chairAssignment.effectiveChair.name}</span>

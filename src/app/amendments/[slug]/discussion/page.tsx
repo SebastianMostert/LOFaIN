@@ -1,12 +1,17 @@
 import { notFound, redirect } from "next/navigation";
 import type { Metadata } from "next";
 
-import { epunda } from "@/app/fonts";
 import { auth, getSignInPath } from "@/auth";
 import { prisma } from "@/prisma";
 import LiveDiscussionSession from "@/components/discussion/LiveDiscussionSession";
 import { getChairAssignmentForAmendment } from "@/utils/chair";
+import { discussionPostPayloadSelect, toDiscussionPostPayloads } from "@/utils/discussionPostPayload";
+import type { DiscussionSystemEntry } from "@/utils/discussionRealtime";
 import { signDiscussionRealtimeAuth } from "@/utils/discussionRealtime";
+import { finalizeDueMotionsForThread } from "@/utils/motionLifecycle";
+import { motionPayloadSelect, toDiscussionMotionPayload } from "@/utils/motionPayload";
+import { loadDiscussionRoomState, toDiscussionSystemEntry } from "@/utils/queueChairActions";
+import { formatArticleHeading, stripArticlePrefix } from "@/utils/articleHeadings";
 
 const baseUrl = process.env.NEXT_PUBLIC_BASE_URL;
 
@@ -56,11 +61,21 @@ export default async function AmendmentDiscussionPage({
   const [amendment, existingDiscussionThread, countries] = await Promise.all([
     prisma.amendment.findUnique({
       where: { slug },
-      select: { id: true, title: true, status: true },
+      select: {
+        id: true,
+        title: true,
+        status: true,
+        rationale: true,
+        op: true,
+        newHeading: true,
+        newBody: true,
+        newOrder: true,
+        targetArticleId: true,
+      },
     }),
     prisma.discussionThread.findFirst({
       where: { slug: { in: [`amendment-${slug}-discussion`, slug, `${slug}-discussion`] } },
-      select: { id: true, slug: true, title: true },
+      select: { id: true, slug: true, title: true, debatePhase: true, isLocked: true, isPinned: true, isArchived: true },
     }),
     prisma.country.findMany({
       where: { isActive: true },
@@ -87,29 +102,53 @@ export default async function AmendmentDiscussionPage({
       createdByCountryId: session.user.countryId ?? null,
       createdByUserId: session.user.id ?? null,
     },
-    select: { id: true, slug: true, title: true },
-  });
-
-  const posts = await prisma.discussionPost.findMany({
-    where: { threadId: discussionThread.id },
-    orderBy: { createdAt: "asc" },
-    select: {
-      id: true,
-      body: true,
-      parentPostId: true,
-      isEdited: true,
-      isDeleted: true,
-      deletedAt: true,
-      editedAt: true,
-      createdAt: true,
-      updatedAt: true,
-      authorUser: { select: { id: true, name: true, image: true } },
-      authorCountry: { select: { id: true, name: true, slug: true, code: true, colorHex: true } },
-    },
+    select: { id: true, slug: true, title: true, debatePhase: true, isLocked: true, isPinned: true, isArchived: true },
   });
 
   const threadId = discussionThread.id;
   const chairAssignment = await getChairAssignmentForAmendment(slug);
+  await finalizeDueMotionsForThread(threadId);
+  const targetArticle = amendment.targetArticleId
+    ? await prisma.article.findUnique({
+      where: { id: amendment.targetArticleId },
+      select: { id: true, order: true, heading: true, body: true },
+    })
+    : null;
+  const [posts, chairLogs, roomState, motions, liveThreadState] = await Promise.all([
+    prisma.discussionPost.findMany({
+      where: { threadId: discussionThread.id },
+      orderBy: { createdAt: "asc" },
+      select: discussionPostPayloadSelect,
+    }),
+    prisma.chairActionLog.findMany({
+      where: { threadId },
+      orderBy: { createdAt: "asc" },
+      select: {
+        id: true,
+        type: true,
+        note: true,
+        createdAt: true,
+        metadata: true,
+        actorCountry: { select: { name: true } },
+      },
+    }),
+    loadDiscussionRoomState(threadId).catch(() => ({
+      presentCountries: [],
+      queuedCountries: [],
+      recognizedSpeaker: null,
+      recognizedAt: null,
+    })),
+    prisma.modMotion.findMany({
+      where: { targetThreadId: threadId },
+      orderBy: { createdAt: "desc" },
+      take: 12,
+      select: motionPayloadSelect,
+    }),
+    prisma.discussionThread.findUnique({
+      where: { id: threadId },
+      select: { debatePhase: true, isLocked: true, isPinned: true, isArchived: true },
+    }),
+  ]);
   const quorumRequired = Math.max(3, Math.ceil(countries.length * 0.5));
   const presidingNote = chairAssignment.effectiveChair.id !== chairAssignment.baseChair.id
     ? `Chair passed temporarily from ${chairAssignment.baseChair.name} to ${chairAssignment.effectiveChair.name} because the scheduled chair's state proposed this amendment.`
@@ -126,40 +165,55 @@ export default async function AmendmentDiscussionPage({
   });
 
   return (
-    <main className="mx-auto max-w-6xl px-4 py-8 text-stone-100">
-      <header className="mb-8 rounded-[2rem] border border-stone-800 bg-[radial-gradient(circle_at_top_left,_rgba(245,158,11,0.15),_transparent_35%),linear-gradient(180deg,_rgba(28,25,23,0.96),_rgba(12,10,9,0.96))] p-6">
-        <p className="text-xs uppercase tracking-[0.28em] text-amber-200/80">Council Debate</p>
-        <h1 className={`${epunda.className} mt-3 text-3xl font-extrabold`}>{amendment.title}</h1>
-        <div className="mt-5 flex flex-wrap gap-3 text-sm text-stone-300">
-          <div className="rounded-full border border-stone-700 bg-stone-950/60 px-4 py-2">
-            Presiding state: <span className="font-semibold text-stone-100">{chairAssignment.effectiveChair.name}</span>
-          </div>
-          <div className="rounded-full border border-stone-700 bg-stone-950/60 px-4 py-2">
-            Debate quorum: <span className="font-semibold text-stone-100">{quorumRequired} delegations</span>
-          </div>
-        </div>
-        {presidingNote && (
-          <p className="mt-4 max-w-3xl rounded-2xl border border-sky-700/60 bg-sky-950/30 px-4 py-3 text-sm text-sky-100">
-            {presidingNote}
-          </p>
-        )}
-      </header>
-
+    <main className="mx-auto max-w-[1680px] px-6 py-8 text-stone-100 2xl:max-w-[1820px]">
       <LiveDiscussionSession
         threadId={threadId}
         authToken={authToken}
         currentCountryId={session.user.countryId ?? null}
         quorumRequired={quorumRequired}
-        initialPosts={posts.map((post) => ({
-          ...post,
-          deletedAt: post.deletedAt ? post.deletedAt.toISOString() : null,
-          editedAt: post.editedAt ? post.editedAt.toISOString() : null,
-          createdAt: post.createdAt.toISOString(),
-          updatedAt: post.updatedAt.toISOString(),
+        presidingStateName={chairAssignment.effectiveChair.name}
+        presidingNote={presidingNote}
+        proposal={{
+          title: amendment.title,
+          rationale: amendment.rationale ?? null,
+          op: amendment.op,
+          targetArticleHeading: targetArticle
+            ? formatArticleHeading(targetArticle.order, targetArticle.heading)
+            : null,
+          proposedHeading: amendment.newHeading
+            ? (
+              targetArticle
+                ? formatArticleHeading(targetArticle.order, amendment.newHeading)
+                : amendment.newOrder
+                  ? formatArticleHeading(amendment.newOrder, amendment.newHeading)
+                  : stripArticlePrefix(amendment.newHeading)
+            )
+            : null,
+          proposedBody: amendment.newBody ?? null,
+          currentBody: targetArticle?.body ?? null,
+        }}
+        initialPosts={await toDiscussionPostPayloads(posts)}
+        availableCountries={countries.map((country) => ({
+          id: country.id,
+          name: country.name,
         }))}
-        initialPresentCountries={[]}
-        initialQueuedCountries={[]}
-        initialRecognizedSpeaker={null}
+        initialSystemEntries={chairLogs
+          .map((log) => toDiscussionSystemEntry({
+            ...log,
+            actorCountryName: log.actorCountry?.name ?? null,
+          }))
+          .filter((entry): entry is DiscussionSystemEntry => entry !== null)}
+        initialPresentCountries={roomState.presentCountries}
+        initialQueuedCountries={roomState.queuedCountries}
+        initialRecognizedSpeaker={roomState.recognizedSpeaker}
+        initialRecognizedAt={roomState.recognizedAt}
+        initialThreadState={{
+          debatePhase: liveThreadState?.debatePhase ?? discussionThread.debatePhase,
+          isLocked: liveThreadState?.isLocked ?? discussionThread.isLocked,
+          isPinned: liveThreadState?.isPinned ?? discussionThread.isPinned,
+          isArchived: liveThreadState?.isArchived ?? discussionThread.isArchived,
+        }}
+        initialMotions={motions.map((motion) => toDiscussionMotionPayload(motion))}
         canModerate={chairAssignment.effectiveChair.id === session.user.countryId}
       />
     </main>

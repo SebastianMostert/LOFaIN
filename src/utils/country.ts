@@ -60,7 +60,7 @@ export async function getCountry(slugOrCode: string) {
     const byCode = await prisma.country.findFirst({
         where: { code },
         select: {
-            id: true, name: true, slug: true, code: true, colorHex: true, hasVeto: true, isActive: true, createdAt: true, joinedAt: true, leftAt: true,
+            id: true, name: true, slug: true, code: true, colorHex: true, summary: true, capital: true, governmentType: true, headOfState: true, foreignMinister: true, hasVeto: true, isActive: true, createdAt: true, joinedAt: true, leftAt: true,
             users: { select: { id: true, name: true, image: true }, take: 50 },
         },
     });
@@ -69,7 +69,7 @@ export async function getCountry(slugOrCode: string) {
     const bySlug = await prisma.country.findUnique({
         where: { slug },
         select: {
-            id: true, name: true, slug: true, code: true, colorHex: true, hasVeto: true, isActive: true, createdAt: true, joinedAt: true, leftAt: true,
+            id: true, name: true, slug: true, code: true, colorHex: true, summary: true, capital: true, governmentType: true, headOfState: true, foreignMinister: true, hasVeto: true, isActive: true, createdAt: true, joinedAt: true, leftAt: true,
             users: { select: { id: true, name: true, image: true }, take: 50 },
         },
     });

@@ -1,0 +1,253 @@
+{
+  "title": "Rules of Procedure for Debates on Amendments",
+  "slug": "debate-rules",
+  "type": "DEBATE_RULES",
+  "adoptedAt": "1900-01-01T12:00:00.000Z",
+  "summary": "Rules of procedure for debates on amendments in the League of Free and Independent Nations.",
+  "preamble": "Adopted by the Assembly of the League of Free and Independent Nations",
+  "titles": [
+    {
+      "heading": "Title I. General Provisions",
+      "articles": [
+        {
+          "heading": "Article 1. Subject Matter",
+          "items": [
+            "These Rules govern the conduct of debates concerning amendments proposed under the Treaty.",
+            "The provisions apply to all Members, their delegates, and the Chair, and shall be binding during the entirety of parliamentary debate.",
+            "The debates form an integral part of the amendment procedure and shall be preserved as part of the official record."
+          ]
+        },
+        {
+          "heading": "Article 2. Definitions",
+          "intro": "For the purposes of these Rules:",
+          "items": [
+            "\"Amendment\" means a formally proposed modification to the Treaty text.",
+            "\"Discussion Thread\" means the official record of debate linked to one amendment.",
+            "\"Member\" means the single delegate representing a Contracting State.",
+            "\"Chair\" means the presiding officer designated in accordance with Title II.",
+            "\"Quorum\" means the minimum presence of Members required to transact business, as defined in Title III."
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Title II. The Chair and the Clerk",
+      "articles": [
+        {
+          "heading": "Article 3. Rotation of the Chair",
+          "items": [
+            "The office of the Chair shall rotate among the delegates of the Contracting States.",
+            "Each delegate shall hold the office for a period of one week in real time.",
+            "The order of rotation shall follow a predetermined order, which shall be decided by unanimous agreement upon the ratification of these rules.",
+            "A delegate may not preside over debate concerning an amendment proposed by their own State. In such cases the Chair shall pass to the next State in the rotation temporarily for this debate."
+          ]
+        },
+        {
+          "heading": "Article 4. Powers of the Chair",
+          "items": [
+            "The Chair shall preside over debate, maintain order, and ensure compliance with the Rules set forth by this document.",
+            "The Chair shall recognize speakers, manage the speaking queue, and enforce speaking time limits.",
+            "The Chair shall rule on points of order. Such rulings shall be subject to appeal in accordance with Article 16.",
+            "The Chair may adopt emergency measures to preserve order, including the deletion of a post or the suspension of a Member's right to speak for a period not exceeding two hours.",
+            "All actions of the Chair shall be entered in the record by the Clerk."
+          ]
+        },
+        {
+          "heading": "Article 5. The Clerk",
+          "items": [
+            "A Clerk shall record all motions, votes, rulings, and sanctions.",
+            "The Clerk shall ensure the faithful preservation of the debate record, referred to as the Hansard."
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Title III. Quorum",
+      "articles": [
+        {
+          "heading": "Article 6. Voting Quorum",
+          "items": [
+            "No amendment shall be deemed adopted unless the voting quorum specified in the Treaty is satisfied.",
+            "The voting quorum relates exclusively to the final adoption of amendments."
+          ]
+        },
+        {
+          "heading": "Article 7. Debate Quorum",
+          "items": [
+            "A quorum equal to at least sixty per cent of the Members present shall be required to transact procedural business, including motions and sanctions.",
+            "Where the quorum is not met:"
+          ],
+          "subitems": [
+            "Debate may continue informally, and posts shall remain in the record.",
+            "No new motions may be introduced or voted upon.",
+            "Emergency actions by the Chair shall be provisional and subject to automatic appeal once quorum is restored."
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Title IV. Debate Procedure",
+      "articles": [
+        {
+          "heading": "Article 8. Speaking Rights",
+          "items": [
+            "Members shall request recognition from the Chair to speak.",
+            "Each recognized speech shall not exceed two minutes.",
+            "A Member may yield the remainder of their time to another Member."
+          ]
+        },
+        {
+          "heading": "Article 9. Interruptions",
+          "items": [
+            "A Member may interrupt a speaker only on a point of order or, with the consent of the speaker, to request information.",
+            "The Chair shall rule immediately on the admissibility of interruptions."
+          ]
+        },
+        {
+          "heading": "Article 10. Closure of Debate",
+          "items": [
+            "Debate may be closed by motion adopted in accordance with Title V.",
+            "Upon closure of debate the Chair shall declare the discussion terminated. No further speeches may be made."
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Title V. Motions and Voting",
+      "articles": [
+        {
+          "heading": "Article 11. Classification of Motions",
+          "items": [
+            "Motions may relate to:"
+          ],
+          "subitems": [
+            "the conduct of debate, including closure, suspension, locking or unlocking of threads;",
+            "the content of posts, including deletion, redaction, and expunction;",
+            "disciplinary measures concerning Members;",
+            "oversight of the Chair, including appeals and reversals of emergency actions."
+          ]
+        },
+        {
+          "heading": "Article 12. Introduction of Motions",
+          "items": [
+            "Except for points of order, all motions shall require the support of a second Member within five minutes.",
+            "Motions not seconded within this time shall lapse."
+          ]
+        },
+        {
+          "heading": "Article 13. Voting Procedure",
+          "items": [
+            "Each Contracting State shall cast one vote, exercised by its delegate. Where more than one delegate is present for a State, the vote shall be cast collectively on behalf of the State and shall count as a single vote.",
+            "Routine motions shall be adopted if supported by at least sixty per cent of Members.",
+            "Significant motions shall be adopted if supported by at least eighty per cent of Members.",
+            "Voting shall close once the outcome is mathematically certain or after twenty minutes."
+          ]
+        },
+        {
+          "heading": "Article 13a. Exclusion of Veto Rights",
+          "items": [
+            "Veto rights conferred under the Treaty shall apply exclusively to the adoption or rejection of amendments.",
+            "Veto rights shall have no effect in the conduct of debates, in the adoption of procedural or disciplinary motions, or in the oversight of the Chair.",
+            "All motions under these Rules shall be decided solely in accordance with the thresholds laid down in Articles 13 to 15."
+          ]
+        },
+        {
+          "heading": "Article 14. Routine Motions",
+          "intro": "Routine motions include:",
+          "items": [
+            "Motions to delete or redact a post.",
+            "Motions to close debate.",
+            "Motions to suspend debate until a specified time.",
+            "Motions to pin or unpin a post.",
+            "Motions to lock or unlock a thread.",
+            "Motions to suspend a Member for a period not exceeding twenty-four hours."
+          ]
+        },
+        {
+          "heading": "Article 15. Significant Motions",
+          "intro": "Significant motions include:",
+          "items": [
+            "Motions to expunge a post from the record.",
+            "Motions to suspend a Member for a period exceeding twenty-four hours.",
+            "Motions to appeal against a ruling of the Chair.",
+            "Motions to reverse an emergency action taken by the Chair."
+          ]
+        },
+        {
+          "heading": "Article 16. Appeals against the Chair",
+          "items": [
+            "Any Member may appeal a ruling of the Chair.",
+            "Appeals shall be treated as significant motions.",
+            "The ruling of the Chair shall remain provisionally in force unless overturned by the Assembly."
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Title VI. Sanctions",
+      "articles": [
+        {
+          "heading": "Article 17. Warnings",
+          "items": [
+            "The Chair may issue warnings to Members whose conduct is disorderly.",
+            "Warnings shall be entered into the record.",
+            "Any Member may move to annul a warning under Article 15."
+          ]
+        },
+        {
+          "heading": "Article 18. Suspensions",
+          "items": [
+            "The Chair may impose an emergency suspension not exceeding two hours.",
+            "Suspensions exceeding two hours shall require adoption by vote:"
+          ],
+          "subitems": [
+            "for suspensions up to twenty-four hours, routine threshold shall apply;",
+            "for suspensions exceeding twenty-four hours, significant threshold shall apply."
+          ],
+          "afterSubitems": [
+            "Suspensions shall be clearly indicated in the record."
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Title VII. Records",
+      "articles": [
+        {
+          "heading": "Article 19. Hansard",
+          "items": [
+            "All speeches, motions, votes, rulings, and sanctions shall be entered in the Hansard.",
+            "Deleted or redacted posts shall remain visible as placeholders unless expunged by significant motion.",
+            "Expunction shall remove the body of the post but leave a reference line in the public record."
+          ]
+        },
+        {
+          "heading": "Article 20. Archiving",
+          "items": [
+            "Upon closure of debate, the thread shall become read-only.",
+            "Pinning and unpinning of posts may still be decided for archival purposes.",
+            "The record shall be preserved permanently."
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Title VIII. Final Provisions",
+      "articles": [
+        {
+          "heading": "Article 21. Entry into Force",
+          "paragraphs": [
+            "These Rules shall enter into force immediately upon adoption by the Assembly."
+          ]
+        },
+        {
+          "heading": "Article 22. Amendment of the Rules",
+          "items": [
+            "These Rules may themselves be amended only by a significant motion.",
+            "Amendments to these Rules shall be appended to the Hansard."
+          ]
+        }
+      ]
+    }
+  ]
+}

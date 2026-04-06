@@ -2,9 +2,22 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/prisma";
 import { ApiError, requireAuthContext } from "@/utils/api/guards";
 import { getChairAssignmentForThread } from "@/utils/chair";
+import { broadcastDiscussionEvent } from "@/utils/discussionEvents";
+import { assertDebateQuorumForThread } from "@/utils/discussionQuorum";
+import { toDiscussionSystemEntry } from "@/utils/queueChairActions";
 import z from "zod";
 
 const emergencySchema = z.discriminatedUnion("action", [
+    z.object({
+        action: z.literal("OPEN_DEBATE"),
+        threadId: z.string(),
+        note: z.string().optional(),
+    }),
+    z.object({
+        action: z.literal("CLOSE_DEBATE"),
+        threadId: z.string(),
+        note: z.string().optional(),
+    }),
     z.object({
         action: z.literal("LOCK_THREAD"),
         threadId: z.string(),
@@ -85,6 +98,7 @@ export async function POST(req: Request) {
             }
 
             const chairAssignment = await ensurePresidingChair(country.id, post.threadId);
+            await assertDebateQuorumForThread(post.threadId);
 
             const restoredPost = await prisma.discussionPost.update({
                 where: { id: post.id },
@@ -119,11 +133,27 @@ export async function POST(req: Request) {
 
         const thread = await ensureThread(payload.threadId);
         const chairAssignment = await ensurePresidingChair(country.id, thread.id);
+        await assertDebateQuorumForThread(thread.id);
         let updatedThread;
-        let type: "LOCK_THREAD" | "UNLOCK_THREAD" | "PIN_THREAD" | "UNPIN_THREAD" | "ARCHIVE_THREAD";
+        let type: "OPEN_DEBATE" | "CLOSE_DEBATE" | "LOCK_THREAD" | "UNLOCK_THREAD" | "PIN_THREAD" | "UNPIN_THREAD" | "ARCHIVE_THREAD";
         let metadata: Record<string, unknown> | undefined;
 
         switch (payload.action) {
+            case "OPEN_DEBATE": {
+                updatedThread = await prisma.discussionThread.update({
+                    where: { id: thread.id },
+                    data: { debatePhase: "FORMAL_DEBATE" },
+                });
+                type = "OPEN_DEBATE";
+                break;
+            }
+            case "CLOSE_DEBATE":
+                updatedThread = await prisma.discussionThread.update({
+                    where: { id: thread.id },
+                    data: { debatePhase: "INFORMAL_CAUCUS" },
+                });
+                type = "CLOSE_DEBATE";
+                break;
             case "LOCK_THREAD":
                 updatedThread = await prisma.discussionThread.update({
                     where: { id: thread.id },
@@ -166,7 +196,7 @@ export async function POST(req: Request) {
                 throw new ApiError(400, "Unsupported action");
         }
 
-        await prisma.chairActionLog.create({
+        const log = await prisma.chairActionLog.create({
             data: {
                 type,
                 actorCountryId: country.id,
@@ -181,6 +211,32 @@ export async function POST(req: Request) {
                     substituteReason: chairAssignment.substituteReason,
                     timestamp: now.toISOString(),
                 },
+            },
+            select: {
+                id: true,
+                type: true,
+                note: true,
+                createdAt: true,
+                metadata: true,
+            },
+        });
+
+        const entry = toDiscussionSystemEntry({
+            ...log,
+            actorCountryName: country.name,
+        });
+
+        if (entry) {
+            await broadcastDiscussionEvent(updatedThread.id, { type: "chair.log", entry });
+        }
+
+        await broadcastDiscussionEvent(updatedThread.id, {
+            type: "thread.updated",
+            thread: {
+                debatePhase: updatedThread.debatePhase,
+                isLocked: updatedThread.isLocked,
+                isPinned: updatedThread.isPinned,
+                isArchived: updatedThread.isArchived,
             },
         });
 

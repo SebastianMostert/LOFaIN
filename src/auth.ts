@@ -41,6 +41,16 @@ export interface Session {
   user: SessionUser;
 }
 
+type CustomSessionInput = {
+  session: Session["session"];
+  user: {
+    id: string;
+    countryId?: string | null;
+    discordId?: string | null;
+    discordUsername?: string | null;
+  } & Omit<SessionUser, "country" | "discord" | "countryId">;
+};
+
 const baseAuthOptions = {
   appName: "League of Free & Independent Nations",
   baseURL:
@@ -127,7 +137,7 @@ const baseAuthOptions = {
 export const authInstance = betterAuth({
   ...baseAuthOptions,
   plugins: [
-    customSession(async ({ user, session }: any) => {
+    customSession(async ({ user, session }: CustomSessionInput) => {
       let countryId = user.countryId ?? null;
 
       if (user.discordId) {

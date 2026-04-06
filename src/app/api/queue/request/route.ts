@@ -1,6 +1,14 @@
 import { NextResponse } from "next/server";
+import { prisma } from "@/prisma";
 import { requireAuthContext } from "@/utils/api/guards";
+import { broadcastDiscussionEvent } from "@/utils/discussionEvents";
 import { getPartyKitRoomHttpUrl } from "@/utils/partykit";
+import {
+  buildQueueChairActionNote,
+  loadDiscussionRoomState,
+  resolveQueueChairTarget,
+  toDiscussionSystemEntry,
+} from "@/utils/queueChairActions";
 
 export const runtime = "nodejs";
 
@@ -30,10 +38,26 @@ export async function POST(request: Request) {
   }
 
   try {
-    const { country } = await requireAuthContext();
+    const { userId, country } = await requireAuthContext();
     if (country.id !== countryId) {
       return NextResponse.json({ error: "Cannot enqueue another country" }, { status: 403 });
     }
+
+    const thread = await prisma.discussionThread.findUnique({
+      where: { id: threadId },
+      select: { id: true, debatePhase: true },
+    });
+
+    if (!thread) {
+      return NextResponse.json({ error: "Thread not found" }, { status: 404 });
+    }
+
+    if (thread.debatePhase !== "FORMAL_DEBATE") {
+      return NextResponse.json({ error: "Speakers list is unavailable during informal caucus" }, { status: 409 });
+    }
+
+    const roomState = await loadDiscussionRoomState(threadId);
+    const target = resolveQueueChairTarget("REQUEST_FLOOR", roomState, countryId);
 
     const response = await fetch(getPartyKitRoomHttpUrl(threadId, "/actions"), {
       method: "POST",
@@ -55,6 +79,38 @@ export async function POST(request: Request) {
 
     if (!response.ok) {
       return NextResponse.json({ error: "Unable to request queue position" }, { status: response.status });
+    }
+
+    const log = await prisma.chairActionLog.create({
+      data: {
+        type: "LOG_NOTE",
+        actorCountryId: country.id,
+        actorUserId: userId ?? null,
+        threadId,
+        note: buildQueueChairActionNote("REQUEST_FLOOR", country.name, target),
+        metadata: {
+          chairAction: "REQUEST_FLOOR",
+          procedural: true,
+          targetCountryId: target?.participant.countryId ?? country.id,
+          targetCountryName: target?.participant.countryName ?? country.name,
+          targetSource: "queued",
+        },
+      },
+      select: {
+        id: true,
+        type: true,
+        note: true,
+        createdAt: true,
+        metadata: true,
+      },
+    });
+
+    const entry = toDiscussionSystemEntry({
+      ...log,
+      actorCountryName: country.name,
+    });
+    if (entry) {
+      await broadcastDiscussionEvent(threadId, { type: "chair.log", entry });
     }
 
     const queue = await response.json();

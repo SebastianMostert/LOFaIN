@@ -45,9 +45,68 @@ export type DiscussionRoomState = {
     recognizedAt: string | null;
 };
 
+export type DiscussionChairNotice = {
+    action: "NUDGE_SPEAKER" | "STOP_SPEAKER";
+    target: DiscussionParticipant;
+    issuedAt: string;
+};
+
+export type DiscussionSystemEntry = {
+    id: string;
+    label: string;
+    body: string;
+    details: string[];
+    createdAt: string;
+};
+
+export type DiscussionThreadStatePayload = {
+    debatePhase: "INFORMAL_CAUCUS" | "FORMAL_DEBATE";
+    isLocked: boolean;
+    isPinned: boolean;
+    isArchived: boolean;
+};
+
+export type DiscussionMotionPayload = {
+    id: string;
+    type: "LOCK_THREAD" | "UNLOCK_THREAD" | "PIN_THREAD" | "UNPIN_THREAD" | "ARCHIVE_THREAD" | "REMOVE_POST" | "RESTORE_POST" | "ISSUE_SANCTION" | "LIFT_SANCTION";
+    status: "DRAFT" | "PROPOSED" | "VOTING" | "PASSED" | "FAILED" | "WITHDRAWN" | "EXECUTED";
+    statusLabel: string;
+    title: string;
+    rationale: string | null;
+    formalWording: string;
+    resolutionNote: string | null;
+    createdAt: string;
+    submittedAt: string | null;
+    openedAt: string | null;
+    closedAt: string | null;
+    resolvedAt: string | null;
+    targetThreadId: string | null;
+    targetPostId: string | null;
+    targetCountryId: string | null;
+    proposerId: string | null;
+    proposerName: string | null;
+    seconderId: string | null;
+    seconderName: string | null;
+    secondedAt: string | null;
+    expiresAt: string | null;
+    autoPassAt: string | null;
+    deniedByChairId: string | null;
+    deniedReason: string | null;
+    chatMessageId: string;
+    votes: {
+        countryId: string;
+        choice: "APPROVE" | "REJECT" | "ABSTAIN";
+    }[];
+};
+
 export type DiscussionServerEvent =
     | ({ type: "snapshot"; } & DiscussionRoomState)
     | ({ type: "state"; } & DiscussionRoomState)
+    | { type: "thread.updated"; thread: DiscussionThreadStatePayload }
+    | { type: "chair.notice"; notice: DiscussionChairNotice }
+    | { type: "chair.log"; entry: DiscussionSystemEntry }
+    | { type: "motion.created"; motion: DiscussionMotionPayload }
+    | { type: "motion.updated"; motion: DiscussionMotionPayload }
     | { type: "post.created"; post: DiscussionPostPayload }
     | { type: "post.updated"; post: DiscussionPostPayload }
     | { type: "post.deleted"; postId: string }
@@ -56,7 +115,9 @@ export type DiscussionServerEvent =
 export type DiscussionClientEvent =
     | { type: "queue.request" }
     | { type: "queue.recognize"; countryId?: string; devOverrideModeration?: boolean }
-    | { type: "queue.skip"; countryId?: string; devOverrideModeration?: boolean };
+    | { type: "queue.skip"; countryId?: string; devOverrideModeration?: boolean }
+    | { type: "queue.nudge"; countryId?: string; devOverrideModeration?: boolean }
+    | { type: "queue.stop"; countryId?: string; devOverrideModeration?: boolean };
 
 function getRealtimeSecret() {
     return process.env.DISCUSSION_REALTIME_SECRET ?? process.env.PARTYKIT_SHARED_SECRET ?? "discussion-dev-secret";

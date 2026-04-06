@@ -2,6 +2,10 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/prisma";
 import { ApiError, requireAuthContext } from "@/utils/api/guards";
 import { broadcastDiscussionEvent } from "@/utils/discussionEvents";
+import {
+    discussionPostPayloadSelect,
+    toDiscussionPostPayload,
+} from "@/utils/discussionPostPayload";
 import z from "zod";
 
 const updatePostSchema = z.object({
@@ -18,28 +22,14 @@ export async function GET(
 
         const post = await prisma.discussionPost.findFirst({
             where: { id: awaitedParams.postId, threadId: awaitedParams.threadId },
-            select: {
-                id: true,
-                body: true,
-                parentPostId: true,
-                isEdited: true,
-                isDeleted: true,
-                deletedAt: true,
-                editedAt: true,
-                createdAt: true,
-                updatedAt: true,
-                authorUser: { select: { id: true, name: true, image: true } },
-                authorCountry: {
-                    select: { id: true, name: true, slug: true, code: true, colorHex: true },
-                },
-            },
+            select: discussionPostPayloadSelect,
         });
 
         if (!post) {
             throw new ApiError(404, "Post not found");
         }
 
-        return NextResponse.json({ post });
+        return NextResponse.json({ post: await toDiscussionPostPayload(post) });
     } catch (error) {
         if (error instanceof ApiError) {
             return NextResponse.json({ error: error.message }, { status: error.status });
@@ -87,35 +77,17 @@ export async function PATCH(
                 isEdited: true,
                 editedAt: new Date(),
             },
-            select: {
-                id: true,
-                body: true,
-                parentPostId: true,
-                isEdited: true,
-                isDeleted: true,
-                deletedAt: true,
-                editedAt: true,
-                createdAt: true,
-                updatedAt: true,
-                authorUser: { select: { id: true, name: true, image: true } },
-                authorCountry: {
-                    select: { id: true, name: true, slug: true, code: true, colorHex: true },
-                },
-            },
+            select: discussionPostPayloadSelect,
         });
+
+        const payload = await toDiscussionPostPayload(updated);
 
         await broadcastDiscussionEvent(awaitedParams.threadId, {
             type: "post.updated",
-            post: {
-                ...updated,
-                deletedAt: updated.deletedAt ? updated.deletedAt.toISOString() : null,
-                editedAt: updated.editedAt ? updated.editedAt.toISOString() : null,
-                createdAt: updated.createdAt.toISOString(),
-                updatedAt: updated.updatedAt.toISOString(),
-            },
+            post: payload,
         });
 
-        return NextResponse.json({ post: updated });
+        return NextResponse.json({ post: payload });
     } catch (error) {
         if (error instanceof ApiError) {
             return NextResponse.json({ error: error.message }, { status: error.status });
