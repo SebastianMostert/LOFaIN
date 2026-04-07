@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/prisma";
 import { countEligibleVotingCountries } from "@/utils/country";
 import { ApiError, requireAuthContext } from "@/utils/api/guards";
+import { getCurrentSimulatedNow } from "@/utils/time/server";
 
 const VOTING_WINDOW_MS = 24 * 60 * 60 * 1000;
 
@@ -41,7 +42,7 @@ export async function POST(
             throw new ApiError(403, "Only the proposer can open voting");
         }
 
-        const opensAt = new Date();
+        const opensAt = await getCurrentSimulatedNow();
         const closesAt = new Date(opensAt.getTime() + VOTING_WINDOW_MS);
         const eligibleCount = await countEligibleVotingCountries(opensAt);
 

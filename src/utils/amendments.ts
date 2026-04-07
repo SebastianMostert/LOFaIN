@@ -1,5 +1,6 @@
 import { prisma } from "@/prisma";
 import { countEligibleVotingCountries } from "@/utils/country";
+import { getCurrentSimulatedNow } from "@/utils/time/server";
 const POLL_INTERVAL_MS = 1000 * 60 * 60; // 1 hour
 const NOTIFY_WINDOW_MS = 1000 * 60 * 60 * 24; // 24 hours
 
@@ -23,7 +24,7 @@ export async function finalizeAmendment(a: FinalizeArgs) {
         counts[v.choice as "AYE" | "NAY" | "ABSTAIN" | "ABSENT"]++;
         if (v.choice === "NAY" && v.country.hasVeto) vetoers.push(v.country.name);
     }
-    const eligibilityDate = a.opensAt ?? a.closesAt ?? new Date();
+    const eligibilityDate = a.opensAt ?? a.closesAt ?? await getCurrentSimulatedNow();
     const eligible = a.eligibleCount ?? (await countEligibleVotingCountries(eligibilityDate));
     const threshold = a.threshold ?? 2 / 3;
     const needed = Math.ceil(eligible * threshold);
@@ -45,7 +46,7 @@ export async function finalizeAmendment(a: FinalizeArgs) {
     await prisma.amendment.update({
         where: { id: a.id },
         data: {
-            closesAt: new Date(),
+            closesAt: await getCurrentSimulatedNow(),
             status: "CLOSED",
             result: passed ? "PASSED" : "FAILED",
             failureReason,
@@ -55,7 +56,7 @@ export async function finalizeAmendment(a: FinalizeArgs) {
 }
 
 export async function closeExpiredAmendments(slug?: string) {
-    const now = new Date();
+    const now = await getCurrentSimulatedNow();
     const where = slug
         ? { slug, status: "OPEN" as const, closesAt: { lte: now } }
         : { status: "OPEN" as const, closesAt: { lte: now } };
@@ -67,7 +68,7 @@ export async function closeExpiredAmendments(slug?: string) {
 }
 
 async function checkUpcomingClosures() {
-    const now = new Date();
+    const now = await getCurrentSimulatedNow();
     const soon = new Date(now.getTime() + NOTIFY_WINDOW_MS);
     const upcoming = await prisma.amendment.findMany({
         where: { status: "OPEN", closesAt: { lte: soon, gt: now } },
@@ -78,7 +79,8 @@ async function checkUpcomingClosures() {
 }
 
 async function checkNewlyOpened() {
-    const since = new Date(Date.now() - POLL_INTERVAL_MS);
+    const now = await getCurrentSimulatedNow();
+    const since = new Date(now.getTime() - POLL_INTERVAL_MS);
     const opened = await prisma.amendment.findMany({
         where: { status: "OPEN", opensAt: { gte: since } },
     });

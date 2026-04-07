@@ -2,6 +2,9 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { epunda } from "@/app/fonts";
 import { prisma } from "@/prisma";
+import LeagueTimeClock from "@/components/LeagueTimeClock";
+import { serializeLeagueTimeSnapshot } from "@/utils/time/shared";
+import { getLeagueTimeSnapshot } from "@/utils/time/server";
 
 export const dynamic = "force-dynamic";
 
@@ -45,13 +48,16 @@ function CTA({ href, label, tone = "dark" }: { href: string; label: string; tone
 }
 
 export default async function HomePage() {
-  const [amendmentCount, memberCount, articleCount, openAmendments, rulingCount] = await Promise.all([
+  const [amendmentCount, memberCount, articleCount, openAmendments, rulingCount, leagueTime] = await Promise.all([
     prisma.amendment.count(),
     prisma.country.count({ where: { isActive: true } }),
     prisma.article.count({ where: { treaty: { adopted: true } } }),
     prisma.amendment.count({ where: { status: "OPEN" } }),
     prisma.chairActionLog.count({ where: { motionId: { not: null } } }),
+    getLeagueTimeSnapshot(),
   ]);
+
+  const serializedLeagueTime = serializeLeagueTimeSnapshot(leagueTime);
 
   return (
     <>
@@ -83,6 +89,7 @@ export default async function HomePage() {
             <aside className="rounded-3xl border border-stone-700/80 bg-stone-900/80 p-6 shadow-2xl">
               <div className="text-xs uppercase tracking-[0.28em] text-stone-400">At A Glance</div>
               <div className="mt-4 space-y-4 text-sm text-stone-200">
+                <LeagueTimeClock initialTime={serializedLeagueTime} />
                 <div className="rounded-2xl border border-stone-800 bg-stone-950/60 p-4">
                   <div className="font-semibold text-stone-100">Documents</div>
                   <div className="mt-1 text-stone-300">Treaty text, debate rules, and recorded chair rulings.</div>

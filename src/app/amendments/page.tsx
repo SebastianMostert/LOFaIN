@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 
 import type { Metadata } from "next";
 import AmendmentsClient from "../../components/AmendmentsClient";
+import { getCurrentSimulatedNow } from "@/utils/time/server";
 
 export const dynamic = "force-dynamic";
 
@@ -30,24 +31,28 @@ export default async function AmendmentsPage({ searchParams }: { searchParams: P
 
     await closeExpiredAmendments();
 
-    const items = await prisma.amendment.findMany({
-        orderBy: { createdAt: "desc" },
-        select: {
-            id: true,
-            slug: true,
-            title: true,
-            status: true,
-            result: true,
-            eligibleCount: true,
-            opensAt: true,
-            closesAt: true,
-            votes: { select: { choice: true, countryId: true } }, 
-        },
-    });
+    const [items, simulatedNow] = await Promise.all([
+        prisma.amendment.findMany({
+            orderBy: { createdAt: "desc" },
+            select: {
+                id: true,
+                slug: true,
+                title: true,
+                status: true,
+                result: true,
+                eligibleCount: true,
+                opensAt: true,
+                closesAt: true,
+                votes: { select: { choice: true, countryId: true } },
+            },
+        }),
+        getCurrentSimulatedNow(),
+    ]);
 
     return <AmendmentsClient
         items={items}
         searchParams={await searchParams}
         userCountryId={session.user?.countryId ?? null}
+        simulatedNow={simulatedNow.toISOString()}
     />
 }

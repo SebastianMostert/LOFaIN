@@ -16,6 +16,7 @@ import { getEligibleVotingCountries } from "@/utils/country";
 import { getCountryFlagSrc } from "@/utils/flags";
 import { formatDateTime, formatDeadline } from "@/utils/formatting";
 import { toRoman } from "@/utils/roman-numerals";
+import { getCurrentSimulatedNow } from "@/utils/time/server";
 import Link from "next/link";
 
 export const dynamic = "force-dynamic";
@@ -200,7 +201,8 @@ export default async function AmendmentPage({
       })
     : null;
 
-  const countries = await getEligibleVotingCountries(amendment.opensAt ?? amendment.closesAt ?? new Date());
+  const simulatedNow = await getCurrentSimulatedNow();
+  const countries = await getEligibleVotingCountries(amendment.opensAt ?? amendment.closesAt ?? simulatedNow);
 
   const byCountry = new Map<string, Choice>();
   amendment.votes.forEach((vote) => byCountry.set(vote.countryId, vote.choice as Choice));
@@ -267,7 +269,7 @@ export default async function AmendmentPage({
           )}
           {amendment.closesAt && amendment.status === "OPEN" && (
             <div className="max-w-full rounded-2xl border border-amber-500/30 bg-amber-500/10 px-4 py-2 text-sm leading-relaxed text-amber-200 sm:rounded-full">
-              {formatDeadline(amendment.closesAt)}. Scheduled close: {formatDateTime(amendment.closesAt)}.
+              {formatDeadline(amendment.closesAt, simulatedNow)}. Scheduled close: {formatDateTime(amendment.closesAt)}.
             </div>
           )}
           {amendment.status === "OPEN" && vetoUsed && (
@@ -381,7 +383,7 @@ export default async function AmendmentPage({
               <ul className="space-y-2 text-sm">
                 <li>Opens: {formatDateTime(amendment.opensAt)}</li>
                 <li>Closes: {formatDateTime(amendment.closesAt)}</li>
-                <li>{formatDeadline(amendment.closesAt)}</li>
+                <li>{formatDeadline(amendment.closesAt, simulatedNow)}</li>
               </ul>
             )}
           </SectionCard>

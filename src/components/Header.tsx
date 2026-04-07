@@ -3,6 +3,7 @@ import Image from "next/image";
 import { auth } from "@/auth";
 import { prisma } from "@/prisma";
 import { getCountryFlagAspectRatio, getCountryFlagSrc } from "@/utils/flags";
+import { getCurrentSimulatedNow } from "@/utils/time/server";
 import NavButton from "./NavButton";
 import SignInButton from "./SignInButton";
 import FlagImage from "./FlagImage";
@@ -67,6 +68,7 @@ type LinkItem = {
 const Links: LinkItem[] = [
   { href: "/documents", label: "Documents", auth: false },
   { href: "/amendments", label: "Amendments", auth: true },
+  { href: "/calendar", label: "Calendar", auth: false },
   { href: "/chair", label: "Chair", auth: false },
   { href: "/members", label: "Members", auth: false },
   { href: "/work", label: "Our Work", auth: false },
@@ -84,11 +86,12 @@ export default async function Header() {
       where: { userId: user.id },
     });
     if (pref?.inAppOnClose !== false) {
-      const soon = new Date(Date.now() + 24 * 60 * 60 * 1000);
+      const simulatedNow = await getCurrentSimulatedNow();
+      const soon = new Date(simulatedNow.getTime() + 24 * 60 * 60 * 1000);
       pending = await prisma.amendment.count({
         where: {
           status: "OPEN",
-          closesAt: { lte: soon, gt: new Date() },
+          closesAt: { lte: soon, gt: simulatedNow },
           votes: { none: { countryId: user.countryId } },
         },
       });
@@ -98,7 +101,7 @@ export default async function Header() {
   const showBanner = pending > 0;
 
   return (
-    <header className="w-full sticky top-0 z-[999] bg-sky-200 border-b-4 border-red-700 shadow-md">
+    <header className="site-header w-full sticky top-0 z-[999] bg-sky-200 border-b-4 border-red-700 shadow-md">
       {showBanner && (
         <Link href="/amendments?status=OPEN&q=&nv=1">
           <div className="w-full bg-red-600 px-4 py-2 text-center text-sm font-semibold sm:text-base">

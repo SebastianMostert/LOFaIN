@@ -3,7 +3,7 @@ import { AmendmentResult, AmendmentStatus } from "@prisma/client";
 import { epunda } from "@/app/fonts";
 import MiniVoteMeter from "./MiniVoteMeter";
 import { clampPct, pct } from "@/utils/voteStats";
-import { formatDateTime, formatDeadline } from "@/utils/formatting";
+import { formatDateTime, formatDeadlineFromReference } from "@/utils/formatting";
 
 type Choice = "AYE" | "NAY" | "ABSTAIN" | "ABSENT";
 
@@ -26,11 +26,13 @@ export default function AmendmentCard({
   counts,
   eligible,
   highlight,
+  simulatedNow,
 }: {
   amendment: ExtendedAmendment;
   counts: Record<Exclude<Choice, "ABSENT">, number>;
   eligible: number;
   highlight?: (s: string) => React.ReactNode;
+  simulatedNow: Date | string;
 }) {
   const isDraft = amendment.status === "DRAFT";
   const totalVotes = counts.AYE + counts.NAY + counts.ABSTAIN;
@@ -42,7 +44,7 @@ export default function AmendmentCard({
 
   const thresholdCount = Math.ceil((2 / 3) * eligible);
   const thresholdPct = clampPct((2 / 3) * 100);
-  const deadlineText = amendment.closesAt ? formatDeadline(amendment.closesAt) : null;
+  const deadlineText = amendment.closesAt ? formatDeadlineFromReference(amendment.closesAt, simulatedNow) : null;
 
   return (
     <Link

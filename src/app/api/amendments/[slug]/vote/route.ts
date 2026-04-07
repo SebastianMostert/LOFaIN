@@ -4,6 +4,7 @@ import { prisma } from "@/prisma";
 import { auth } from "@/auth";
 import { closeExpiredAmendments } from "@/utils/amendments";
 import { countryHasVotingPowerAt } from "@/utils/country";
+import { getCurrentSimulatedNow } from "@/utils/time/server";
 
 export async function POST(req: Request, { params }: { params: Promise<{ slug: string }> }) {
     const awaitedParams = await params;
@@ -24,7 +25,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ slug: s
     if (!a) return NextResponse.json({ error: "Amendment not found" }, { status: 404 });
     if (a.status !== "OPEN") return NextResponse.json({ error: "Voting is closed" }, { status: 400 });
 
-    const now = new Date();
+    const now = await getCurrentSimulatedNow();
     if (a.opensAt && now < a.opensAt) return NextResponse.json({ error: "Voting not open yet" }, { status: 400 });
     const eligibilityDate = a.opensAt ?? now;
     const canVote = await countryHasVotingPowerAt(countryId, eligibilityDate);

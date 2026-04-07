@@ -7,6 +7,8 @@ import { prisma } from "@/prisma";
 import { CHAIR_ROTATION_ORDER, getCurrentChairAssignment, getRotationSchedule } from "@/utils/chair";
 import { getCountryFlagAspectRatio, getCountryFlagSrc } from "@/utils/flags";
 import { formatDateTime, formatDeadline } from "@/utils/formatting";
+import { computeSimulatedDateForRealDate } from "@/utils/time/shared";
+import { getLeagueTimeSnapshot } from "@/utils/time/server";
 
 export const dynamic = "force-dynamic";
 
@@ -53,7 +55,7 @@ function Pill({
 }
 
 export default async function ChairPage() {
-  const [assignment, countries] = await Promise.all([
+  const [assignment, countries, leagueTime] = await Promise.all([
     getCurrentChairAssignment(),
     prisma.country.findMany({
       where: {
@@ -71,6 +73,7 @@ export default async function ChairPage() {
         isActive: true,
       },
     }),
+    getLeagueTimeSnapshot(),
   ]);
 
   const bySlug = new Map(countries.map((country) => [country.slug, country]));
@@ -79,8 +82,11 @@ export default async function ChairPage() {
     .filter((country): country is NonNullable<typeof country> => Boolean(country));
   const currentIndex = rotation.findIndex((country) => country?.id === assignment.effectiveChair.id);
   const nextCountry = rotation.length > 0 ? rotation[(currentIndex + 1) % rotation.length] : null;
-  const termLengthLabel = assignment.effectiveChair.hasVeto ? "1 week" : "2 weeks";
+  const termLengthLabel = assignment.effectiveChair.hasVeto ? "7 years" : "14 years";
   const schedule = getRotationSchedule(rotation, assignment.rotationStartedAt);
+  const simulatedRotationStartedAt = computeSimulatedDateForRealDate(assignment.rotationStartedAt, leagueTime);
+  const simulatedTermStartedAt = computeSimulatedDateForRealDate(assignment.termStartedAt, leagueTime);
+  const simulatedTermEndsAt = computeSimulatedDateForRealDate(assignment.termEndsAt, leagueTime);
 
   return (
     <main className="mx-auto max-w-6xl px-4 py-10 text-stone-100">
@@ -92,8 +98,8 @@ export default async function ChairPage() {
             Chair Rotation
           </h1>
           <p className="mt-4 max-w-3xl text-sm leading-relaxed text-stone-300 sm:text-base">
-            The office rotates in an agreed order. Veto powers preside for one real-time week, non-veto powers for
-            two real-time weeks, and amendment debates pass temporarily to the next state in line when the scheduled
+            The office rotates in an agreed order. Veto powers preside for seven simulated years, non-veto powers for
+            fourteen simulated years, and amendment debates pass temporarily to the next state in line when the scheduled
             chair is also the proposer.
           </p>
 
@@ -123,26 +129,32 @@ export default async function ChairPage() {
                     <div className={`${epunda.className} mt-1 text-3xl text-stone-50`}>{assignment.effectiveChair.name}</div>
                     <div className="mt-2 text-sm text-stone-300">
                       {assignment.effectiveChair.hasVeto
-                        ? "One-week veto term currently in force."
-                        : "Two-week non-veto term currently in force."}
+                        ? "Seven-year veto term currently in force."
+                        : "Fourteen-year non-veto term currently in force."}
                     </div>
                   </div>
                 </div>
 
                 <div className="rounded-2xl border border-stone-700 bg-stone-950/60 px-4 py-3 text-sm text-stone-300">
                   <div className="text-xs uppercase tracking-[0.2em] text-stone-500">Term status</div>
-                  <div className="mt-1 font-semibold text-stone-100">{formatDeadline(assignment.termEndsAt)}</div>
-                  <div className="mt-1 text-stone-400">Ends {formatDateTime(assignment.termEndsAt)}</div>
+                  <div className="mt-1 font-semibold text-stone-100">
+                    {formatDeadline(simulatedTermEndsAt, leagueTime.currentSimulatedNow)}
+                  </div>
+                  <div className="mt-1 text-stone-400">Ends {formatDateTime(simulatedTermEndsAt)}</div>
                 </div>
               </div>
             </article>
 
             <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-1">
-              <StatCard label="Term opened" value={formatDateTime(assignment.termStartedAt)} />
+              <StatCard label="Term opened" value={formatDateTime(simulatedTermStartedAt)} />
               <StatCard
                 label="Next rotation"
-                value={formatDateTime(assignment.termEndsAt)}
-                note={nextCountry ? `${nextCountry.name} is next in the published order.` : "Rotation continues automatically."}
+                value={formatDateTime(simulatedTermEndsAt)}
+                note={
+                  nextCountry
+                    ? `${nextCountry.name} is next in the published order. Real time: ${formatDateTime(assignment.termEndsAt)}.`
+                    : `Rotation continues automatically. Real time: ${formatDateTime(assignment.termEndsAt)}.`
+                }
               />
             </div>
           </div>
@@ -204,7 +216,8 @@ export default async function ChairPage() {
                         </div>
                         {slot && (
                           <div className="mt-2 text-sm text-stone-400">
-                            {formatDateTime(slot.startsAt)} to {formatDateTime(slot.endsAt)}
+                            {formatDateTime(computeSimulatedDateForRealDate(slot.startsAt, leagueTime))} to{" "}
+                            {formatDateTime(computeSimulatedDateForRealDate(slot.endsAt, leagueTime))}
                           </div>
                         )}
                       </div>
@@ -229,10 +242,10 @@ export default async function ChairPage() {
             <h2 className={`${epunda.className} mt-1 text-2xl text-stone-100`}>How It Works</h2>
             <div className="mt-4 space-y-3 text-sm leading-relaxed text-stone-300">
               <div className="rounded-2xl border border-stone-800 bg-stone-950/50 p-4">
-                Veto powers hold the chair for one week in real time so the office does not remain concentrated too long among the strongest states.
+                Veto powers hold the chair for seven simulated years so the office does not remain concentrated too long among the strongest states.
               </div>
               <div className="rounded-2xl border border-stone-800 bg-stone-950/50 p-4">
-                Non-veto powers hold the chair for two weeks in real time to give smaller states a fuller opportunity to shape procedure and visibly exercise leadership.
+                Non-veto powers hold the chair for fourteen simulated years to give smaller states a fuller opportunity to shape procedure and visibly exercise leadership.
               </div>
               <div className="rounded-2xl border border-stone-800 bg-stone-950/50 p-4">
                 If the scheduled chair proposed the amendment being debated, the office passes temporarily to the next state in rotation for that debate.
@@ -250,10 +263,10 @@ export default async function ChairPage() {
               </div>
               <div className="rounded-2xl border border-stone-800 bg-stone-950/50 p-4">
                 <div className="text-xs uppercase tracking-[0.2em] text-stone-500">Rotation anchor</div>
-                <div className="mt-1 font-semibold text-stone-100">{formatDateTime(assignment.rotationStartedAt)}</div>
+                <div className="mt-1 font-semibold text-stone-100">{formatDateTime(simulatedRotationStartedAt)}</div>
               </div>
               <div className="rounded-2xl border border-stone-800 bg-stone-950/50 p-4 text-sm text-stone-300">
-                This page reflects real-time office rotation only. NRP chronology remains separate.
+                Rotation remains real-time, but the dates shown here are displayed on the simulation calendar.
               </div>
             </div>
           </section>

@@ -27,10 +27,12 @@ export default function AmendmentsClient({
   items,
   searchParams,
   userCountryId,
+  simulatedNow,
 }: {
   items: Amendment[];
   searchParams: Record<string, string | string[] | undefined>;
   userCountryId?: string | null;
+  simulatedNow: string;
 }) {
   const router = useRouter();
   const urlParams = useSearchParams();
@@ -243,6 +245,7 @@ export default function AmendmentsClient({
                 counts={counts}
                 eligible={eligible}
                 highlight={highlight}
+                simulatedNow={simulatedNow}
               />
             );
           })}

@@ -1,0 +1,11 @@
+{
+  "id": "main",
+  "originalRealStartAt": "2026-04-07T00:00:00.000Z",
+  "originalSimulatedAt": "1917-01-01T00:00:00.000Z",
+  "currentRealAnchorAt": "2026-04-07T00:00:00.000Z",
+  "currentRealReferenceAt": "2026-04-07T15:39:14.863Z",
+  "currentSimulatedAt": "1917-01-01T15:39:14.863Z",
+  "isPaused": true,
+  "createdAt": "2026-04-07T00:00:00.000Z",
+  "updatedAt": "2026-04-07T15:39:14.863Z"
+}
