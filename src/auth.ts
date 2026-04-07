@@ -20,6 +20,8 @@ export interface SessionUser {
     slug: string;
     code: string | null;
     colorHex: string | null;
+    flagImagePath?: string | null;
+    flagAspectRatio?: string | null;
   } | null;
   discord?: {
     id: string;
@@ -165,6 +167,8 @@ export const authInstance = betterAuth({
               slug: true,
               code: true,
               colorHex: true,
+              flagImagePath: true,
+              flagAspectRatio: true,
             },
           })
         : null;

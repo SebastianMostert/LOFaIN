@@ -28,6 +28,8 @@ export async function getEligibleVotingCountries(at: Date) {
             name: true,
             slug: true,
             code: true,
+            flagImagePath: true,
+            flagAspectRatio: true,
             hasVeto: true,
             isActive: true,
             joinedAt: true,
@@ -60,8 +62,8 @@ export async function getCountry(slugOrCode: string) {
     const byCode = await prisma.country.findFirst({
         where: { code },
         select: {
-            id: true, name: true, slug: true, code: true, colorHex: true, summary: true, capital: true, governmentType: true, headOfState: true, foreignMinister: true, hasVeto: true, isActive: true, createdAt: true, joinedAt: true, leftAt: true,
-            users: { select: { id: true, name: true, image: true }, take: 50 },
+            id: true, name: true, slug: true, code: true, colorHex: true, flagImagePath: true, flagAspectRatio: true, summary: true, capital: true, governmentType: true, officeholders: true, headOfState: true, foreignMinister: true, hasVeto: true, isActive: true, createdAt: true, joinedAt: true, leftAt: true,
+            users: { select: { id: true, name: true, image: true }, orderBy: { createdAt: "asc" }, take: 50 },
         },
     });
     if (byCode) return byCode;
@@ -69,8 +71,8 @@ export async function getCountry(slugOrCode: string) {
     const bySlug = await prisma.country.findUnique({
         where: { slug },
         select: {
-            id: true, name: true, slug: true, code: true, colorHex: true, summary: true, capital: true, governmentType: true, headOfState: true, foreignMinister: true, hasVeto: true, isActive: true, createdAt: true, joinedAt: true, leftAt: true,
-            users: { select: { id: true, name: true, image: true }, take: 50 },
+            id: true, name: true, slug: true, code: true, colorHex: true, flagImagePath: true, flagAspectRatio: true, summary: true, capital: true, governmentType: true, officeholders: true, headOfState: true, foreignMinister: true, hasVeto: true, isActive: true, createdAt: true, joinedAt: true, leftAt: true,
+            users: { select: { id: true, name: true, image: true }, orderBy: { createdAt: "asc" }, take: 50 },
         },
     });
     return bySlug;

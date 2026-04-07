@@ -49,9 +49,12 @@ model Country {
   slug     String  @unique
   code     String? // e.g., "FRA", "USSR", "ITA"
   colorHex String? // muted accent for UI
+  flagImagePath String?
+  flagAspectRatio String?
   summary  String?
   capital  String?
   governmentType String?
+  officeholders Json?
   headOfState String?
   foreignMinister String?
   isActive Boolean @default(true)

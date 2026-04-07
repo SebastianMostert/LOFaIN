@@ -13,6 +13,7 @@ import { prisma } from "@/prisma";
 import { closeExpiredAmendments } from "@/utils/amendments";
 import { formatArticleHeading, stripArticlePrefix } from "@/utils/articleHeadings";
 import { getEligibleVotingCountries } from "@/utils/country";
+import { getCountryFlagSrc } from "@/utils/flags";
 import { formatDateTime, formatDeadline } from "@/utils/formatting";
 import { toRoman } from "@/utils/roman-numerals";
 import Link from "next/link";
@@ -182,7 +183,7 @@ export default async function AmendmentPage({
       targetArticleId: true,
       votes: { select: { choice: true, countryId: true } },
       proposerUser: { select: { id: true, name: true } },
-      proposerCountry: { select: { id: true, name: true, slug: true, code: true } },
+      proposerCountry: { select: { id: true, name: true, slug: true, code: true, flagImagePath: true, flagAspectRatio: true } },
     },
   });
   if (!amendment) notFound();
@@ -232,7 +233,7 @@ export default async function AmendmentPage({
             <span className="inline-flex items-center gap-2 text-left">
               <span className="relative inline-block h-4 w-6 overflow-hidden rounded-[2px] border border-stone-800 bg-white align-middle">
                 <FlagImage
-                  src={`/flags/${(amendment.proposerCountry.code || "unknown").toLowerCase()}.svg`}
+                  src={getCountryFlagSrc(amendment.proposerCountry)}
                   alt={`${amendment.proposerCountry.name} flag`}
                   sizes="24px"
                   className="object-cover"

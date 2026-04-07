@@ -16,6 +16,8 @@ export async function GET(req: Request) {
       slug: true,
       code: true,
       colorHex: true,
+      flagImagePath: true,
+      flagAspectRatio: true,
     },
   });
 

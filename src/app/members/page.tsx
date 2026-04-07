@@ -5,6 +5,7 @@ import { epunda } from "@/app/fonts";
 import FlagImage from "@/components/FlagImage";
 import { prisma } from "@/prisma";
 import { getCurrentChairAssignment } from "@/utils/chair";
+import { getCountryFlagAspectRatio, getCountryFlagSrc } from "@/utils/flags";
 import { formatDate } from "@/utils/formatting";
 
 const baseUrl = process.env.NEXT_PUBLIC_BASE_URL;
@@ -57,6 +58,8 @@ export default async function CountriesPage({
       slug: true,
       code: true,
       colorHex: true,
+      flagImagePath: true,
+      flagAspectRatio: true,
       hasVeto: true,
       isActive: true,
       createdAt: true,
@@ -199,9 +202,12 @@ export default async function CountriesPage({
 
                 <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
                   <div className="flex items-start gap-4">
-                    <div className="relative h-14 w-20 overflow-hidden rounded-lg border border-stone-700 bg-stone-950">
+                    <div
+                      className="relative w-20 overflow-hidden rounded-lg border border-stone-700 bg-stone-950"
+                      style={{ aspectRatio: getCountryFlagAspectRatio(country) }}
+                    >
                       <FlagImage
-                        src={`/flags/${(country.code ?? "unknown").toLowerCase()}.svg`}
+                        src={getCountryFlagSrc(country)}
                         alt={`${country.name} flag`}
                         sizes="80px"
                         className="object-cover"

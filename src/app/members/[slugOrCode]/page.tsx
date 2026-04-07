@@ -5,7 +5,9 @@ import { epunda } from "@/app/fonts";
 import FlagImage from "@/components/FlagImage";
 import { getCurrentChairAssignment } from "@/utils/chair";
 import { getCountry } from "@/utils/country";
+import { getCountryFlagAspectRatio, getCountryFlagSrc } from "@/utils/flags";
 import { formatDate } from "@/utils/formatting";
+import { getCountryOfficeholders } from "@/utils/officeholders";
 
 const baseUrl = process.env.NEXT_PUBLIC_BASE_URL;
 
@@ -37,12 +39,12 @@ export async function generateMetadata({
     description: `Public profile for ${country.name} in the League of Free and Independent Nations.`,
     keywords: [country.name, "country", "league"],
     alternates: { canonical: url },
-    openGraph: {
-      title: `${country.name} - League`,
-      description: `Public profile for ${country.name} in the League of Free and Independent Nations.`,
-      url,
-      images: [{ url: `${baseUrl}/flags/${(country.code || "unknown").toLowerCase()}.svg`, alt: `${country.name} flag` }],
-    },
+      openGraph: {
+        title: `${country.name} - League`,
+        description: `Public profile for ${country.name} in the League of Free and Independent Nations.`,
+        url,
+        images: [{ url: `${baseUrl}${getCountryFlagSrc(country)}`, alt: `${country.name} flag` }],
+      },
   };
 }
 
@@ -69,6 +71,7 @@ export default async function PublicCountryPage({
 
   const isChair = chairAssignment.effectiveChair.id === country.id;
   const membershipStatus = country.isActive ? "Current member" : "Former member";
+  const officeholders = getCountryOfficeholders(country);
 
   return (
     <section className="overflow-hidden rounded-2xl border border-stone-800 bg-stone-900">
@@ -80,9 +83,12 @@ export default async function PublicCountryPage({
         <article>
           <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
             <div className="flex items-start gap-4">
-              <div className="relative h-16 w-24 overflow-hidden rounded-xl border border-stone-700 bg-stone-950">
+              <div
+                className="relative w-24 overflow-hidden rounded-xl border border-stone-700 bg-stone-950"
+                style={{ aspectRatio: getCountryFlagAspectRatio(country) }}
+              >
                 <FlagImage
-                  src={`/flags/${(country.code ?? "unknown").toLowerCase()}.svg`}
+                  src={getCountryFlagSrc(country)}
                   alt={`${country.name} flag`}
                   sizes="96px"
                   className="object-cover"
@@ -121,7 +127,7 @@ export default async function PublicCountryPage({
             <StatCard label="Status" value={isChair ? "Chairing member" : membershipStatus} />
           </dl>
 
-          {(country.summary || country.capital || country.governmentType || country.headOfState || country.foreignMinister) && (
+          {(country.summary || country.capital || country.governmentType || officeholders.length > 0) && (
             <div className="mt-8 rounded-2xl border border-stone-800 bg-stone-950/50 p-5">
               <h3 className={`${epunda.className} text-lg font-semibold text-stone-100`}>Country Profile</h3>
               {country.summary && (
@@ -130,8 +136,13 @@ export default async function PublicCountryPage({
               <dl className="mt-4 grid gap-3 sm:grid-cols-2">
                 {country.capital && <StatCard label="Capital" value={country.capital} />}
                 {country.governmentType && <StatCard label="Government" value={country.governmentType} />}
-                {country.headOfState && <StatCard label="Head of state" value={country.headOfState} />}
-                {country.foreignMinister && <StatCard label="Foreign minister" value={country.foreignMinister} />}
+                {officeholders.map((officeholder) => (
+                  <StatCard
+                    key={`${officeholder.position}-${officeholder.name}`}
+                    label={officeholder.position}
+                    value={officeholder.name}
+                  />
+                ))}
               </dl>
             </div>
           )}

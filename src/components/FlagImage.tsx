@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 export default function FlagImage({
     src,
@@ -15,6 +15,11 @@ export default function FlagImage({
     className?: string;
 }) {
     const [errored, setErrored] = useState(false);
+    const isObjectUrl = src.startsWith("blob:") || src.startsWith("data:");
+
+    useEffect(() => {
+        setErrored(false);
+    }, [src]);
 
     if (errored) {
         // simple placeholder if the flag file is missing
@@ -23,6 +28,18 @@ export default function FlagImage({
                 className={`h-full w-full bg-stone-300 ${className ?? ""}`}
                 aria-label={alt}
                 role="img"
+            />
+        );
+    }
+
+    if (isObjectUrl) {
+        return (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+                src={src}
+                alt={alt}
+                className={className ?? "object-cover"}
+                onError={() => setErrored(true)}
             />
         );
     }

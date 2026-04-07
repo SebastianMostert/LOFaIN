@@ -11,13 +11,11 @@ export default function SignInButton({ callbackUrl = "/" }: { callbackUrl?: stri
           callbackURL: callbackUrl,
         });
       }}
-      className="rounded-sm px-4 py-2 text-sm uppercase tracking-[0.16em] text-white transition-transform active:translate-y-0.5 focus:outline-none hover:bg-[#823a3a] sm:px-6 sm:text-lg sm:tracking-wide"
-      style={{
-        background: "linear-gradient(180deg, #0d5a86 0%, #0a4566 100%)",
-        boxShadow: "0 3px 6px rgba(0,0,0,0.45)",
-      }}
+      className="inline-flex rounded-[0.6rem] bg-[#083a57] p-[2.5px] shadow-[0_8px_18px_rgba(0,0,0,0.22)] transition hover:scale-[1.02] active:translate-y-0.5 focus:outline-none sm:p-[5px]"
     >
-      Sign In
+      <span className="inline-flex h-[28px] items-center justify-center rounded-[0.42rem] bg-[#0f4766] px-4 text-[11px] font-semibold uppercase tracking-[0.16em] text-[#d7ebf4] transition hover:bg-[#14506f] sm:h-[34px] sm:px-6 sm:text-sm sm:tracking-[0.2em] lg:h-[42px]">
+        Sign In
+      </span>
     </button>
   );
 }

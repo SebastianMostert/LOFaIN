@@ -10,6 +10,8 @@ type RotationCountry = {
     name: string;
     slug: string;
     code: string | null;
+    flagImagePath: string | null;
+    flagAspectRatio: string | null;
     hasVeto: boolean;
     isActive: boolean;
 };
@@ -96,6 +98,8 @@ async function getRotationCountries(at: Date) {
             name: true,
             slug: true,
             code: true,
+            flagImagePath: true,
+            flagAspectRatio: true,
             hasVeto: true,
             isActive: true,
         },

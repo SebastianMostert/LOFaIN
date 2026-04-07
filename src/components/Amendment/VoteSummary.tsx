@@ -1,4 +1,5 @@
 import FlagImage from "@/components/FlagImage";
+import { getCountryFlagAspectRatio, getCountryFlagSrc } from "@/utils/flags";
 
 type Choice = "AYE" | "NAY" | "ABSTAIN" | "ABSENT";
 
@@ -37,16 +38,18 @@ function CountryVoteSlot({
   country,
   vote,
 }: {
-  country: { name: string; id: string; slug: string; code: string | null; hasVeto?: boolean };
+  country: { name: string; id: string; slug: string; code: string | null; flagImagePath?: string | null; flagAspectRatio?: string | null; hasVeto?: boolean };
   vote: Choice;
 }) {
   const styles = choiceStyles(vote);
-  const flagSrc = `/flags/${(country.code || "unknown").toLowerCase()}.svg`;
 
   return (
     <div className="flex w-[84px] shrink-0 flex-col items-center gap-3 sm:w-[118px] sm:gap-5 lg:w-[132px]">
-      <div className="relative h-[50px] w-full overflow-hidden border-2 border-stone-900 bg-white sm:h-[70px] sm:border-[3px]">
-        <FlagImage src={flagSrc} alt={`${country.name} flag`} sizes="132px" className="object-cover" />
+      <div
+        className="relative w-full overflow-hidden border-2 border-stone-900 bg-white sm:border-[3px]"
+        style={{ aspectRatio: getCountryFlagAspectRatio(country) }}
+      >
+        <FlagImage src={getCountryFlagSrc(country)} alt={`${country.name} flag`} sizes="132px" className="object-cover" />
       </div>
 
       <div
@@ -61,7 +64,7 @@ export default function VoteSummary({
   countries,
   byCountry,
 }: {
-  countries: { name: string; id: string; slug: string; code: string | null; hasVeto?: boolean }[];
+  countries: { name: string; id: string; slug: string; code: string | null; flagImagePath?: string | null; flagAspectRatio?: string | null; hasVeto?: boolean }[];
   byCountry: Map<string, Choice>;
 }) {
   return (

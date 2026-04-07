@@ -5,6 +5,7 @@ import { epunda } from "@/app/fonts";
 import FlagImage from "@/components/FlagImage";
 import { prisma } from "@/prisma";
 import { CHAIR_ROTATION_ORDER, getCurrentChairAssignment, getRotationSchedule } from "@/utils/chair";
+import { getCountryFlagAspectRatio, getCountryFlagSrc } from "@/utils/flags";
 import { formatDateTime, formatDeadline } from "@/utils/formatting";
 
 export const dynamic = "force-dynamic";
@@ -64,7 +65,10 @@ export default async function ChairPage() {
         name: true,
         slug: true,
         code: true,
+        flagImagePath: true,
+        flagAspectRatio: true,
         hasVeto: true,
+        isActive: true,
       },
     }),
   ]);
@@ -103,9 +107,12 @@ export default async function ChairPage() {
             <article className="rounded-3xl border border-sky-700/30 bg-sky-950/25 p-5">
               <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
                 <div className="flex items-start gap-4">
-                  <div className="relative h-16 w-24 overflow-hidden rounded-xl border border-stone-700 bg-stone-950">
+                  <div
+                    className="relative w-24 overflow-hidden rounded-xl border border-stone-700 bg-stone-950"
+                    style={{ aspectRatio: getCountryFlagAspectRatio(assignment.effectiveChair) }}
+                  >
                     <FlagImage
-                      src={`/flags/${(assignment.effectiveChair.code ?? "unknown").toLowerCase()}.svg`}
+                      src={getCountryFlagSrc(assignment.effectiveChair)}
                       alt={`${assignment.effectiveChair.name} flag`}
                       sizes="96px"
                       className="object-cover"
@@ -177,9 +184,12 @@ export default async function ChairPage() {
                       <div className="flex h-10 w-10 items-center justify-center rounded-full border border-stone-700 bg-stone-900 text-sm font-semibold text-stone-200">
                         {index + 1}
                       </div>
-                      <div className="relative h-11 w-16 overflow-hidden rounded-lg border border-stone-700 bg-stone-950">
+                      <div
+                        className="relative w-16 overflow-hidden rounded-lg border border-stone-700 bg-stone-950"
+                        style={{ aspectRatio: getCountryFlagAspectRatio(country) }}
+                      >
                         <FlagImage
-                          src={`/flags/${(country.code ?? "unknown").toLowerCase()}.svg`}
+                          src={getCountryFlagSrc(country)}
                           alt={`${country.name} flag`}
                           sizes="64px"
                           className="object-cover"

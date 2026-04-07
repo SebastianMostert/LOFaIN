@@ -2,8 +2,10 @@ import Link from "next/link";
 import Image from "next/image";
 import { auth } from "@/auth";
 import { prisma } from "@/prisma";
+import { getCountryFlagAspectRatio, getCountryFlagSrc } from "@/utils/flags";
 import NavButton from "./NavButton";
 import SignInButton from "./SignInButton";
+import FlagImage from "./FlagImage";
 
 const LogoPart = ({ size }: { size: number }) => {
   return (
@@ -22,16 +24,36 @@ const LogoPart = ({ size }: { size: number }) => {
   );
 };
 
-const FlagProfileLink = ({ size, countryCode }: { size: number; countryCode: string }) => {
+const FlagProfileLink = ({
+  size,
+  country,
+}: {
+  size: number;
+  country: {
+    code?: string | null;
+    flagImagePath?: string | null;
+    flagAspectRatio?: string | null;
+  };
+}) => {
   return (
-    <Link href="/members/me" aria-label="Open your country profile">
-        <Image
-          src={`/flags/btn/${countryCode.toLocaleLowerCase()}.png`}
-          alt="Country Flag"
-          width={24 * size}
-          height={16 * size}
-          className="inline-block h-auto w-[56px] rounded-[2px] sm:w-[68px] lg:w-[84px]"
-        />
+    <Link
+      href="/members/me"
+      aria-label="Open your country profile"
+      className="group inline-flex rounded-[0.6rem] transition hover:scale-[1.02]"
+    >
+      <div className="rounded-[0.2rem] bg-[#083a57] p-[2.5px] shadow-[0_8px_18px_rgba(0,0,0,0.22)] sm:p-[5px]">
+        <div
+          className="relative w-[56px] overflow-hidden rounded-[0.2rem] bg-white sm:w-[68px] lg:w-[84px]"
+          style={{ aspectRatio: getCountryFlagAspectRatio(country) }}
+        >
+          <FlagImage
+            src={getCountryFlagSrc(country)}
+            alt="Country Flag"
+            sizes={`${24 * size}px`}
+            className="object-cover"
+          />
+        </div>
+      </div>
     </Link>
   );
 };
@@ -94,7 +116,7 @@ export default async function Header() {
           }).map((link, index) => (
             <NavButton key={index} href={link.href} label={link.label} />
           ))}
-          {user && <FlagProfileLink size={3.5} countryCode={countryCode} />}
+          {user && <FlagProfileLink size={3.5} country={user.country ?? { code: countryCode }} />}
           {!user && <SignInButton />}
         </nav>
       </div>
